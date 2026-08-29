@@ -25,4 +25,6 @@ npm run typecheck
 npm run lint
 ```
 
-The MVP currently uses local mock journey data. `EXPO_PUBLIC_API_URL` is reserved for API integration.
+Set `EXPO_PUBLIC_API_URL` to the backend URL reachable from the physical device. Authentication,
+journeys, private photo uploads, album galleries, and journey covers use the real API. Selected
+photos remain private and are displayed through short-lived access URLs returned by the backend.
