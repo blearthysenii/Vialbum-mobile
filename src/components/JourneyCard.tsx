@@ -1,0 +1,54 @@
+import { Link } from 'expo-router';
+import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import type { Journey } from '@/features/journeys/types';
+import { colors } from '@/theme/colors';
+
+function CardContent({ journey }: { journey: Journey }) {
+  return (
+    <>
+      <View style={styles.overlay} />
+      <View style={styles.topLine}>
+        <Text style={styles.country}>{journey.country.toUpperCase()}</Text>
+        <Text style={styles.year}>{journey.start_date.slice(0, 4)}</Text>
+      </View>
+      <View>
+        <Text style={styles.destination}>{journey.title.toUpperCase()}</Text>
+        <Text style={styles.location}>{journey.destination}</Text>
+      </View>
+    </>
+  );
+}
+
+export function JourneyCard({ journey }: { journey: Journey }) {
+  return (
+    <Link href={{ pathname: '/journey/[id]', params: { id: journey.id } }} asChild>
+      <Pressable accessibilityLabel={`Open ${journey.title}`} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+        {journey.cover_media_url ? (
+          <ImageBackground source={{ uri: journey.cover_media_url }} resizeMode="cover" style={styles.content} imageStyle={styles.radius}>
+            <CardContent journey={journey} />
+          </ImageBackground>
+        ) : (
+          <View style={[styles.content, styles.placeholder]}>
+            <View style={styles.sun} />
+            <View style={styles.horizon} />
+            <CardContent journey={journey} />
+          </View>
+        )}
+      </Pressable>
+    </Link>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: { height: 390, marginBottom: 20, borderRadius: 28, backgroundColor: '#66705E', shadowColor: '#171713', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 18, elevation: 6, overflow: 'hidden' },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  content: { flex: 1, justifyContent: 'space-between', padding: 22 },
+  radius: { borderRadius: 28 }, placeholder: { backgroundColor: '#677263' },
+  sun: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: '#D8B982', right: -22, top: 48, opacity: 0.72 },
+  horizon: { position: 'absolute', height: 130, left: -20, right: -20, bottom: 0, backgroundColor: '#3E493F', transform: [{ rotate: '-6deg' }] },
+  overlay: { position: 'absolute', inset: 0, borderRadius: 28, backgroundColor: 'rgba(18,18,14,0.2)' },
+  topLine: { flexDirection: 'row', justifyContent: 'space-between' },
+  country: { color: '#FFF', fontSize: 11, fontWeight: '700', letterSpacing: 1.7 }, year: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  destination: { color: colors.surface, fontSize: 37, lineHeight: 40, fontWeight: '800', letterSpacing: -1.5 }, location: { color: 'rgba(255,255,255,0.82)', fontSize: 14, marginTop: 6 },
+});
