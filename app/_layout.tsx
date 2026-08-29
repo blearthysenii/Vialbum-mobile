@@ -26,6 +26,7 @@ function RootNavigator() {
       <Stack.Protected guard={Boolean(user)}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="journey/[id]" />
+        <Stack.Screen name="journey/[id]/photo/[mediaId]" options={{ animation: 'fade' }} />
         <Stack.Screen name="journey/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="journey/edit/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack.Protected>
