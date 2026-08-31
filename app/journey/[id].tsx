@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,7 +18,9 @@ import { colors } from '@/theme/colors';
 const formatDate = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
 export default function JourneyDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, memoryId } = useLocalSearchParams<{ id: string; memoryId?: string }>();
+  const listRef = useRef<SectionList<TimelineItem, TimelineSection>>(null);
+  const lastFocusedMemory = useRef<string | null>(null);
   const { journeys, fetchOne, remove } = useJourneys();
   const [journey, setJourney] = useState<Journey | null>(journeys.find((item) => item.id === id) ?? null);
   const [error, setError] = useState(false);
@@ -53,10 +55,22 @@ export default function JourneyDetailsScreen() {
   }, [refreshTimeline]));
   const sections = useMemo(() => groupTimeline(journey?.start_date ?? '', memories, media), [journey?.start_date, memories, media]);
 
+  useEffect(() => {
+    if (!memoryId || loading || lastFocusedMemory.current === memoryId) return;
+    const sectionIndex = sections.findIndex((section) => section.data.some((item) => item.type === 'memory' && item.id === memoryId));
+    if (sectionIndex < 0) return;
+    const itemIndex = sections[sectionIndex].data.findIndex((item) => item.type === 'memory' && item.id === memoryId);
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToLocation({ sectionIndex, itemIndex, viewPosition: 0.42, animated: true });
+      lastFocusedMemory.current = memoryId;
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [loading, memoryId, sections]);
+
   function confirmDelete() { Alert.alert('Delete this journey?', 'This album and its memories will be permanently removed.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => void remove(id).then(() => router.replace('/')) }]); }
 
   function renderItem({ item }: { item: TimelineItem }) {
-    if (item.type === 'memory') return <Pressable accessibilityLabel={`Edit memory: ${item.memory.title}`} onPress={() => setEditor({ memory: item.memory })} style={timelineStyles.memory}>
+    if (item.type === 'memory') return <Pressable accessibilityLabel={`Edit memory: ${item.memory.title}`} onPress={() => setEditor({ memory: item.memory })} style={[timelineStyles.memory, item.id === memoryId && timelineStyles.memorySelected]}>
       <Text style={timelineStyles.eyebrow}>MEMORY</Text><Text style={timelineStyles.title}>{item.memory.title}</Text>
       {item.memory.caption ? <Text style={timelineStyles.caption}>{item.memory.caption}</Text> : null}
       {item.memory.latitude !== null || item.memory.longitude !== null ? <Text style={styles.muted}>{item.memory.latitude ?? '—'}, {item.memory.longitude ?? '—'}</Text> : null}
@@ -72,6 +86,7 @@ export default function JourneyDetailsScreen() {
   if (!journey) return <SafeAreaView style={styles.loading}><Text style={styles.error}>This journey could not be opened.</Text><Pressable onPress={() => router.back()}><Text style={styles.action}>Go Back</Text></Pressable></SafeAreaView>;
   return <View style={styles.safe}>
     <SectionList<TimelineItem, TimelineSection>
+      ref={listRef}
       sections={sections}
       keyExtractor={(item) => `${item.type}:${item.id}`}
       renderItem={renderItem}
@@ -105,6 +120,7 @@ const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canv
 const timelineStyles = StyleSheet.create({
   header: { padding: 24 }, day: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 12, gap: 5 },
   title: { fontSize: 22, fontWeight: '800', color: colors.ink }, memory: { marginHorizontal: 24, marginBottom: 12, padding: 20, borderRadius: 18, backgroundColor: '#E8E3D8', gap: 8 },
+  memorySelected: { borderWidth: 2, borderColor: colors.accent },
   eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '800', letterSpacing: 1.5 }, caption: { color: colors.ink, fontSize: 16, lineHeight: 24 },
   edit: { color: colors.accent, fontSize: 12, marginTop: 5 }, photo: { marginHorizontal: 24, marginBottom: 12, borderRadius: 12, overflow: 'hidden' },
   image: { width: '100%', aspectRatio: 1.3, backgroundColor: '#E1DDD3' }, photoCaption: { padding: 14, backgroundColor: '#E8E3D8', color: colors.ink, fontSize: 15, lineHeight: 21 }, add: { paddingVertical: 16 }, error: { color: '#A33D2D', marginVertical: 12 }, footer: { paddingBottom: 60 },
