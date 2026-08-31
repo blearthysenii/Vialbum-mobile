@@ -14,6 +14,7 @@ export type JourneyMedia = {
   latitude: string | null;
   longitude: string | null;
   sort_order: number;
+  caption: string | null;
   created_at: string;
 };
 
