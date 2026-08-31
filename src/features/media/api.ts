@@ -22,6 +22,10 @@ export const mediaApi = {
       metadata(photo),
       onProgress,
     ),
+  updateCaption: (journeyId: string, mediaId: string, caption: string | null) =>
+    apiRequest<JourneyMedia>(`/journeys/${journeyId}/media/${mediaId}`, {
+      method: 'PATCH', body: { caption }, authenticated: true,
+    }),
   remove: (journeyId: string, mediaId: string) =>
     apiRequest<void>(`/journeys/${journeyId}/media/${mediaId}`, {
       method: 'DELETE', authenticated: true,
