@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useJourneys } from '@/features/journeys/JourneyProvider';
 import { mediaApi } from '@/features/media/api';
+import { PhotoCaptionEditor } from '@/features/media/components/PhotoCaptionEditor';
 import type { JourneyMedia } from '@/features/media/types';
 
 export default function PhotoViewerScreen() {
@@ -13,6 +14,7 @@ export default function PhotoViewerScreen() {
   const { fetchOne } = useJourneys();
   const [photo, setPhoto] = useState<JourneyMedia | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingCaption, setEditingCaption] = useState(false);
 
   useEffect(() => {
     void mediaApi.list(id).then((items) => setPhoto(items.find((item) => item.id === mediaId) ?? null));
@@ -55,11 +57,16 @@ export default function PhotoViewerScreen() {
     <Image source={photo.url} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="disk" transition={150} />
     <SafeAreaView style={styles.chrome} edges={['top', 'bottom']}>
       <Pressable onPress={() => router.back()} style={styles.circle}><Text style={styles.close}>×</Text></Pressable>
-      <View style={styles.actions}>
-        <Pressable disabled={busy} onPress={() => void setCover()} style={styles.action}><Text style={styles.actionText}>Set as Cover</Text></Pressable>
-        <Pressable disabled={busy} onPress={confirmDelete} style={[styles.action, styles.delete]}><Text style={styles.actionText}>Delete</Text></Pressable>
+      <View>
+        {photo.caption ? <Text style={styles.caption}>{photo.caption}</Text> : null}
+        <View style={styles.actions}>
+          <Pressable disabled={busy} onPress={() => setEditingCaption(true)} style={styles.action}><Text style={styles.actionText}>{photo.caption ? 'Edit Caption' : 'Add Caption'}</Text></Pressable>
+          <Pressable disabled={busy} onPress={() => void setCover()} style={styles.action}><Text style={styles.actionText}>Set as Cover</Text></Pressable>
+          <Pressable disabled={busy} onPress={confirmDelete} style={[styles.action, styles.delete]}><Text style={styles.actionText}>Delete</Text></Pressable>
+        </View>
       </View>
     </SafeAreaView>
+    {editingCaption ? <PhotoCaptionEditor journeyId={id} photo={photo} onClose={() => setEditingCaption(false)} onSaved={setPhoto} /> : null}
   </View>;
 }
 
@@ -68,5 +75,6 @@ const styles = StyleSheet.create({
   chrome: { flex: 1, padding: 18, justifyContent: 'space-between' }, circle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(28,28,25,0.75)', alignItems: 'center', justifyContent: 'center' },
   close: { color: '#FFF', fontSize: 30, lineHeight: 32, fontWeight: '300' }, actions: { flexDirection: 'row', gap: 10 },
   action: { flex: 1, backgroundColor: 'rgba(245,242,234,0.92)', borderRadius: 16, minHeight: 52, alignItems: 'center', justifyContent: 'center' }, delete: { backgroundColor: 'rgba(157,48,35,0.92)' },
-  actionText: { color: '#11110F', fontWeight: '800' },
+  actionText: { color: '#11110F', fontWeight: '800', fontSize: 12 },
+  caption: { color: '#FFF', backgroundColor: 'rgba(12,12,10,0.72)', borderRadius: 14, padding: 14, marginBottom: 12, fontSize: 16, lineHeight: 23 },
 });
