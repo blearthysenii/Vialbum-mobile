@@ -11,5 +11,5 @@ export default function NewJourneyScreen() {
     const journey = await create(values);
     router.replace({ pathname: '/journey/[id]', params: { id: journey.id } });
   }
-  return <JourneyForm eyebrow="NEW ALBUM" heading="Where will your memories live?" submitLabel="Create Journey" initialValues={{ title: '', destination: '', country: '', start_date: today, end_date: today, description: null }} onSubmit={submit} onCancel={() => router.back()} />;
+  return <JourneyForm eyebrow="NEW ALBUM" heading="Where will your memories live?" submitLabel="Create Journey" initialValues={{ title: '', destination: '', country: '', start_date: today, end_date: today, description: null, latitude: null, longitude: null }} onSubmit={submit} onCancel={() => router.back()} />;
 }
