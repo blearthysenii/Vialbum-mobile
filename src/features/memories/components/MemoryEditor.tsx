@@ -10,10 +10,13 @@ import { SheetHeader } from '@/components/ui/Headers';
 import { TextField } from '@/components/ui/TextField';
 import { memoryApi } from '@/features/memories/api';
 import type { Memory, MemoryInput } from '@/features/memories/types';
+import { LocationPicker } from '@/features/places/components/LocationPicker';
+import type { PlaceSelection } from '@/features/places/types';
+import { formatPlaceContext } from '@/features/places/utils';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { typography } from '@/theme/tokens';
-import { formatCalendarDate } from '@/utils/format';
+import { formatCalendarDate, formatCoordinates } from '@/utils/format';
 
 type Props = { journeyId: string; initialDate: string; memory: Memory | null; onClose: () => void; onSaved: (memory: Memory) => void; onDeleted: (id: string) => void };
 
@@ -21,18 +24,13 @@ export function MemoryEditor({ journeyId, initialDate, memory, onClose, onSaved,
   const [title, setTitle] = useState(memory?.title ?? '');
   const [caption, setCaption] = useState(memory?.caption ?? '');
   const [date, setDate] = useState(memory?.memory_date ?? initialDate);
-  const [latitude, setLatitude] = useState(memory?.latitude ?? '');
-  const [longitude, setLongitude] = useState(memory?.longitude ?? '');
+  const [latitude, setLatitude] = useState<string | null>(memory?.latitude ?? null);
+  const [longitude, setLongitude] = useState<string | null>(memory?.longitude ?? null);
+  const [place, setPlace] = useState<PlaceSelection | null | undefined>(memory?.place ?? undefined);
+  const [showLocation, setShowLocation] = useState(false);
   const [showDate, setShowDate] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function coordinate(value: string, limit: number): string | null {
-    if (!value.trim()) return null;
-    const number = Number(value.trim());
-    if (!Number.isFinite(number) || Math.abs(number) > limit) throw new Error(`Coordinates must be between −${limit} and ${limit}.`);
-    return number.toFixed(6);
-  }
 
   async function save() {
     if (busy) return;
@@ -40,7 +38,7 @@ export function MemoryEditor({ journeyId, initialDate, memory, onClose, onSaved,
     let input: MemoryInput;
     try {
       if (!title.trim()) throw new Error('Add a title for this memory.');
-      input = { title: title.trim(), caption: caption.trim() || null, memory_date: date, latitude: coordinate(latitude, 90), longitude: coordinate(longitude, 180) };
+      input = { title: title.trim(), caption: caption.trim() || null, memory_date: date, latitude, longitude, place };
     } catch (caught) { setError((caught as Error).message); return; }
     setBusy(true);
     try {
@@ -72,12 +70,24 @@ export function MemoryEditor({ journeyId, initialDate, memory, onClose, onSaved,
           if (event.type !== 'dismissed' && selected) setDate(`${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`);
         }} /> : null}
         <TextField label="Notes · optional" accessibilityLabel="Memory notes" editable={!busy} value={caption} onChangeText={setCaption} multiline contained placeholder="What made this moment special?" />
-        <Text style={styles.label}>COORDINATES · OPTIONAL</Text>
-        <View style={styles.coordinates}><View style={styles.coordinate}><TextField label="Latitude" editable={!busy} value={latitude} onChangeText={setLatitude} placeholder="Latitude" keyboardType="numbers-and-punctuation" /></View><View style={styles.coordinate}><TextField label="Longitude" editable={!busy} value={longitude} onChangeText={setLongitude} placeholder="Longitude" keyboardType="numbers-and-punctuation" /></View></View>
+        <Text style={styles.label}>LOCATION · OPTIONAL</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Choose memory location" disabled={busy} onPress={() => setShowLocation(true)} style={styles.input}>
+          <Text numberOfLines={2} style={styles.date}>{place ? formatPlaceContext(place) || place.display_name : formatCoordinates(latitude, longitude) ?? 'Search for a place or choose a map point'}</Text>
+        </Pressable>
         {error ? <ErrorBanner message={error} /> : null}
         <PrimaryButton loading={busy} onPress={() => void save()}>Save Memory</PrimaryButton>
         {memory ? <DestructiveButton disabled={busy} onPress={() => Alert.alert('Delete this memory?', 'Photos will stay in your journey.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: () => void remove() }])}>Delete Memory</DestructiveButton> : null}
       </ScrollView>
+      {showLocation ? <LocationPicker entityLabel="Memory" latitude={latitude} longitude={longitude} place={place ?? null} onCancel={() => setShowLocation(false)} onChange={(selection) => {
+        if (selection) {
+          setLatitude(selection.coordinate.latitude.toFixed(6));
+          setLongitude(selection.coordinate.longitude.toFixed(6));
+          setPlace(selection.place ?? place);
+        } else {
+          setLatitude(null); setLongitude(null); setPlace(place ? null : place);
+        }
+        setShowLocation(false);
+      }} /> : null}
     </KeyboardAvoidingView></SafeAreaView>
   </Modal>;
 }
@@ -86,5 +96,4 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas }, content: { padding: spacing.lg, paddingBottom: 50, gap: spacing.lg },
   heading: { ...typography.screenTitle, color: colors.ink, marginVertical: spacing.sm }, label: { ...typography.eyebrow, color: colors.muted },
   input: { minHeight: 50, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 12, justifyContent: 'center' }, date: { ...typography.bodyLarge, color: colors.ink },
-  coordinates: { flexDirection: 'row', gap: spacing.md }, coordinate: { flex: 1 },
 });
