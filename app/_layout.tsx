@@ -1,9 +1,10 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { LoadingState } from '@/components/ui/Feedback';
 import { JourneyProvider } from '@/features/journeys/JourneyProvider';
 import { colors } from '@/theme/colors';
 
@@ -11,7 +12,7 @@ function RestoringSession() {
   return (
     <View style={styles.loading}>
       <View style={styles.mark}><Text style={styles.markText}>V</Text></View>
-      <ActivityIndicator color={colors.accent} />
+      <LoadingState label="Opening Vialbum…" />
     </View>
   );
 }
