@@ -1,7 +1,9 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PrimaryButton } from '@/components/ui/Button';
+import { ErrorBanner } from '@/components/ui/Feedback';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { AuthField } from '@/features/auth/components/AuthField';
 import { AuthScreen } from '@/features/auth/components/AuthScreen';
@@ -39,11 +41,11 @@ export default function SignUpScreen() {
         <AuthField label="Password" value={form.password} onChangeText={update('password')} placeholder="At least 8 characters" secureTextEntry textContentType="newPassword" />
         <AuthField label="Confirm password" value={form.confirmPassword} onChangeText={update('confirmPassword')} placeholder="Repeat your password" secureTextEntry textContentType="newPassword" />
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable disabled={isSubmitting} onPress={submit} style={({ pressed }) => [styles.button, pressed && styles.pressed, isSubmitting && styles.disabled]}>{isSubmitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Create Account</Text>}</Pressable>
+      {error ? <View style={styles.feedback}><ErrorBanner message={error} /></View> : null}
+      <PrimaryButton loading={isSubmitting} onPress={() => void submit()} style={styles.button}>Create Account</PrimaryButton>
       <View style={styles.footer}><Text style={styles.footerText}>Already have an account?</Text><Link href="/sign-in" style={styles.link}>Sign in</Link></View>
     </AuthScreen>
   );
 }
 
-const styles = StyleSheet.create({ form: { marginTop: 30 }, nameRow: { flexDirection: 'row', gap: 16 }, nameField: { flex: 1 }, error: { color: '#A33D2D', fontSize: 13, lineHeight: 19, marginTop: 14 }, button: { backgroundColor: colors.ink, borderRadius: 18, height: 58, alignItems: 'center', justifyContent: 'center', marginTop: 26 }, pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] }, disabled: { opacity: 0.65 }, buttonText: { color: '#FFF', fontSize: 16, fontWeight: '800' }, footer: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 20 }, footerText: { color: colors.muted, fontSize: 13 }, link: { color: colors.accent, fontSize: 13, fontWeight: '800' } });
+const styles = StyleSheet.create({ form: { marginTop: 30, gap: 14 }, nameRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, nameField: { flex: 1, minWidth: 135 }, feedback: { marginTop: 16 }, button: { marginTop: 24 }, footer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 20 }, footerText: { color: colors.muted, fontSize: 13 }, link: { color: colors.accent, fontSize: 13, fontWeight: '800' } });
