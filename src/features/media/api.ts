@@ -1,6 +1,6 @@
 import { apiRequest, apiUpload } from '@/api/client';
 import type { Journey } from '@/features/journeys/types';
-import type { JourneyMedia, SelectedPhoto } from '@/features/media/types';
+import type { JourneyMedia, MediaUpdate, SelectedPhoto } from '@/features/media/types';
 
 function metadata(photo: SelectedPhoto) {
   const fields: Record<string, string> = {};
@@ -25,6 +25,10 @@ export const mediaApi = {
   updateCaption: (journeyId: string, mediaId: string, caption: string | null) =>
     apiRequest<JourneyMedia>(`/journeys/${journeyId}/media/${mediaId}`, {
       method: 'PATCH', body: { caption }, authenticated: true,
+    }),
+  update: (journeyId: string, mediaId: string, body: MediaUpdate) =>
+    apiRequest<JourneyMedia>(`/journeys/${journeyId}/media/${mediaId}`, {
+      method: 'PATCH', body, authenticated: true,
     }),
   remove: (journeyId: string, mediaId: string) =>
     apiRequest<void>(`/journeys/${journeyId}/media/${mediaId}`, {
