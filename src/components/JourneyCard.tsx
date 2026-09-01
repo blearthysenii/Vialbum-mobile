@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Journey } from '@/features/journeys/types';
 import { colors } from '@/theme/colors';
+import { radii, shadows, typography } from '@/theme/tokens';
 
 function CardContent({ journey }: { journey: Journey }) {
   return (
@@ -43,7 +44,7 @@ export function JourneyCard({ journey }: { journey: Journey }) {
 }
 
 const styles = StyleSheet.create({
-  card: { height: 390, marginBottom: 20, borderRadius: 28, backgroundColor: '#66705E', shadowColor: '#171713', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.16, shadowRadius: 18, elevation: 6, overflow: 'hidden' },
+  card: { height: 390, borderRadius: radii.xl, backgroundColor: '#66705E', ...shadows.card, overflow: 'hidden' },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   content: { flex: 1, justifyContent: 'space-between', padding: 22 },
   placeholder: { backgroundColor: '#677263' },
@@ -51,6 +52,6 @@ const styles = StyleSheet.create({
   horizon: { position: 'absolute', height: 130, left: -20, right: -20, bottom: 0, backgroundColor: '#3E493F', transform: [{ rotate: '-6deg' }] },
   overlay: { position: 'absolute', inset: 0, borderRadius: 28, backgroundColor: 'rgba(18,18,14,0.2)' },
   topLine: { flexDirection: 'row', justifyContent: 'space-between' },
-  country: { color: '#FFF', fontSize: 11, fontWeight: '700', letterSpacing: 1.7 }, year: { color: '#FFF', fontSize: 13, fontWeight: '600' },
-  destination: { color: colors.surface, fontSize: 37, lineHeight: 40, fontWeight: '800', letterSpacing: -1.5 }, location: { color: 'rgba(255,255,255,0.82)', fontSize: 14, marginTop: 6 },
+  country: { ...typography.eyebrow, color: colors.onDark }, year: { ...typography.metadata, color: colors.onDark },
+  destination: { ...typography.display, color: colors.surface, fontSize: 37, lineHeight: 40 }, location: { ...typography.body, color: 'rgba(255,255,255,0.82)', marginTop: 6 },
 });
