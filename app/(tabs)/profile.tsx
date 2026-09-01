@@ -1,9 +1,14 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { SecondaryButton } from '@/components/ui/Button';
+import { ScreenHeader } from '@/components/ui/Headers';
+import { MetadataRow } from '@/components/ui/Metadata';
 import { colors } from '@/theme/colors';
+import { spacing } from '@/theme/spacing';
+import { radii, typography } from '@/theme/tokens';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -17,14 +22,15 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.content}>
-        <View style={styles.avatar}><Text style={styles.initial}>{initials || 'V'}</Text></View>
-        <Text style={styles.title}>{user?.first_name} {user?.last_name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-        <Text style={styles.copy}>A quiet home for the places and moments you want to keep.</Text>
-        <Pressable onPress={logout} style={({ pressed }) => [styles.logout, pressed && styles.pressed]}><Text style={styles.logoutText}>Sign Out</Text></Pressable>
+        <ScreenHeader eyebrow="YOUR SPACE" title="Profile" />
+        <View style={styles.profile}><View style={styles.avatar}><Text style={styles.initial}>{initials || 'V'}</Text></View>
+          <Text style={styles.title}>{user?.first_name} {user?.last_name}</Text><Text style={styles.copy}>A quiet home for the places and moments you want to keep.</Text>
+        </View>
+        <View style={styles.details}><MetadataRow label="Email" value={user?.email ?? '—'} /></View>
+        <SecondaryButton accessibilityLabel="Sign out of Vialbum" onPress={() => void logout()} style={styles.logout}>Sign Out</SecondaryButton>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canvas }, content: { flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' }, avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }, initial: { color: colors.canvas, fontSize: 27, fontWeight: '800' }, title: { marginTop: 24, fontSize: 30, fontWeight: '800', color: colors.ink }, email: { color: colors.muted, marginTop: 5, fontSize: 14 }, copy: { maxWidth: 280, marginTop: 18, textAlign: 'center', color: colors.muted, fontSize: 16, lineHeight: 24 }, logout: { marginTop: 36, borderWidth: 1, borderColor: colors.line, borderRadius: 16, paddingHorizontal: 28, paddingVertical: 14 }, pressed: { opacity: 0.65 }, logoutText: { color: colors.accent, fontSize: 14, fontWeight: '800' } });
+const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canvas }, content: { flex: 1, padding: spacing.lg }, profile: { alignItems: 'center', marginTop: spacing.xxl }, avatar: { width: 88, height: 88, borderRadius: radii.round, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }, initial: { color: colors.canvas, fontSize: 27, fontWeight: '800' }, title: { ...typography.screenTitle, marginTop: spacing.lg, color: colors.ink }, copy: { ...typography.bodyLarge, maxWidth: 300, marginTop: spacing.md, textAlign: 'center', color: colors.muted }, details: { marginTop: spacing.xxl }, logout: { marginTop: 'auto', marginBottom: spacing.lg } });
