@@ -20,6 +20,7 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radii, typography } from '@/theme/tokens';
 import { formatCalendarDate, formatCoordinates, formatDateRange } from '@/utils/format';
+import { formatPlaceContext } from '@/features/places/utils';
 
 
 export default function JourneyDetailsScreen() {
@@ -78,7 +79,7 @@ export default function JourneyDetailsScreen() {
     if (item.type === 'memory') return <Pressable accessibilityLabel={`Edit memory: ${item.memory.title}`} onPress={() => setEditor({ memory: item.memory })} style={[timelineStyles.memory, item.id === memoryId && timelineStyles.memorySelected]}>
       <Text style={timelineStyles.eyebrow}>MEMORY</Text><Text style={timelineStyles.title}>{item.memory.title}</Text>
       {item.memory.caption ? <Text style={timelineStyles.caption}>{item.memory.caption}</Text> : null}
-      {formatCoordinates(item.memory.latitude, item.memory.longitude) ? <Text style={styles.muted}>{formatCoordinates(item.memory.latitude, item.memory.longitude)}</Text> : null}
+      {item.memory.place || formatCoordinates(item.memory.latitude, item.memory.longitude) ? <Text style={styles.muted}>{item.memory.place ? formatPlaceContext(item.memory.place) || item.memory.place.display_name : formatCoordinates(item.memory.latitude, item.memory.longitude)}</Text> : null}
       <Text style={timelineStyles.edit}>Edit memory</Text>
     </Pressable>;
     return <Pressable accessibilityLabel="Open journey photo" onPress={() => router.push(`/journey/${id}/photo/${item.id}` as never)} style={timelineStyles.photo}>
