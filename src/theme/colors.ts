@@ -1,9 +1,17 @@
 export const colors = {
   canvas: '#F4F1EA',
   surface: '#FFFFFF',
+  surfaceWarm: '#E8E3D8',
+  surfaceSubtle: '#EEE9DE',
   ink: '#171713',
   muted: '#716F68',
+  subtle: '#9A9891',
+  placeholder: '#99958B',
   line: '#DFDCD3',
   accent: '#A65331',
+  danger: '#A33D2D',
+  success: '#526B50',
+  onDark: '#FFFFFF',
+  overlay: 'rgba(12,12,10,0.48)',
   tab: '#FBFAF7',
 } as const;
