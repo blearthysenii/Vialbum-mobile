@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
+import { PrimaryButton, QuietButton } from '@/components/ui/Button';
 import { mediaApi } from '@/features/media/api';
 import { pickPhotos } from '@/features/media/picker';
 import type { JourneyMedia, SelectedPhoto } from '@/features/media/types';
 import { colors } from '@/theme/colors';
+import { spacing } from '@/theme/spacing';
+import { radii, typography } from '@/theme/tokens';
 
 type UploadItem = SelectedPhoto & {
   status: 'preparing' | 'uploading' | 'success' | 'error';
@@ -56,9 +59,7 @@ export function PhotoUploader({
   }
 
   return <View>
-    <Pressable disabled={isBusy} onPress={() => void choose()} style={({ pressed }) => [styles.button, (pressed || isBusy) && styles.dim]}>
-      {isPicking ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>＋  Add Photos</Text>}
-    </Pressable>
+    <PrimaryButton disabled={isBusy} loading={isPicking} onPress={() => void choose()}>Add Photos</PrimaryButton>
     {items.length ? <View style={styles.queue}>{items.map((item) => (
       <View key={item.key} style={styles.row}>
         <View style={styles.rowCopy}>
@@ -68,17 +69,14 @@ export function PhotoUploader({
           </Text>
           {item.status === 'uploading' ? <View style={styles.track}><View style={[styles.progress, { width: `${item.progress}%` }]} /></View> : null}
         </View>
-        {item.status === 'error' ? <Pressable onPress={() => void uploadOne(item)} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable> : null}
+        {item.status === 'error' ? <QuietButton onPress={() => void uploadOne(item)}>Retry</QuietButton> : null}
       </View>
     ))}</View> : null}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  button: { marginTop: 16, backgroundColor: colors.ink, borderRadius: 16, minHeight: 54, alignItems: 'center', justifyContent: 'center' },
-  dim: { opacity: 0.65 }, buttonText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
-  queue: { marginTop: 12, gap: 7 }, row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEE9DE', borderRadius: 14, padding: 12 },
-  rowCopy: { flex: 1 }, name: { color: colors.ink, fontWeight: '700', fontSize: 13 }, status: { color: colors.muted, fontSize: 12, marginTop: 3 }, error: { color: '#A33D2D' },
+  queue: { marginTop: spacing.sm, gap: spacing.xs }, row: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surfaceSubtle, borderRadius: radii.md, padding: 12 },
+  rowCopy: { flex: 1 }, name: { ...typography.metadata, color: colors.ink, fontSize: 13 }, status: { ...typography.metadata, color: colors.muted, marginTop: 3 }, error: { color: colors.danger },
   track: { height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: '#D5CFC2', marginTop: 7 }, progress: { height: 3, backgroundColor: colors.accent },
-  retry: { padding: 9 }, retryText: { color: colors.accent, fontWeight: '800', fontSize: 12 },
 });
