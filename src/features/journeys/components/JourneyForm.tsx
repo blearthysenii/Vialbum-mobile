@@ -2,12 +2,19 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { useState } from 'react';
 
 import { JourneyLocationPicker } from '@/features/journeys/components/JourneyLocationPicker';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/client';
+import { PrimaryButton } from '@/components/ui/Button';
+import { ErrorBanner } from '@/components/ui/Feedback';
+import { SheetHeader } from '@/components/ui/Headers';
+import { TextField } from '@/components/ui/TextField';
 import type { JourneyInput } from '@/features/journeys/types';
 import { colors } from '@/theme/colors';
+import { spacing } from '@/theme/spacing';
+import { radii, typography } from '@/theme/tokens';
+import { formatCalendarDate, formatCoordinates } from '@/utils/format';
 
 export type JourneyFormValues = Omit<JourneyInput, 'cover_media_url'>;
 type DateField = 'start_date' | 'end_date';
@@ -19,7 +26,7 @@ const toApiDate = (value: Date) => {
   const day = String(value.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-const displayDate = (value: string) => toDate(value).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+const displayDate = (value: string) => formatCalendarDate(value, { month: 'long', day: 'numeric', year: 'numeric' });
 
 export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSubmit, onCancel }: { eyebrow: string; heading: string; submitLabel: string; initialValues: JourneyFormValues; onSubmit: (values: JourneyFormValues) => Promise<void>; onCancel: () => void }) {
   const [values, setValues] = useState(initialValues);
@@ -43,34 +50,33 @@ export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSu
     try {
       await onSubmit({ ...values, title: values.title.trim(), destination: values.destination.trim(), country: values.country.trim(), description: values.description?.trim() || null });
     } catch (caughtError) {
-      setError(caughtError instanceof ApiError && caughtError.status === 0 ? caughtError.message : 'The journey could not be saved. Please try again.');
+      setError(caughtError instanceof ApiError ? caughtError.message : 'The journey could not be saved. Please try again.');
     } finally { setIsSubmitting(false); }
   }
 
   return (
-    <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.header}><Pressable onPress={onCancel}><Text style={styles.cancel}>Cancel</Text></Pressable><Text style={styles.eyebrow}>{eyebrow}</Text><View style={styles.headerSpacer} /></View>
+    <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
+      <SheetHeader title={eyebrow} onClose={onCancel} />
       <Text style={styles.heading}>{heading}</Text>
       <View style={styles.form}>
-        <FormField label="Journey title" value={values.title} onChangeText={update('title')} placeholder="Medina 2025" />
-        <FormField label="Destination" value={values.destination} onChangeText={update('destination')} placeholder="Medina" />
-        <FormField label="Country" value={values.country} onChangeText={update('country')} placeholder="Saudi Arabia" />
-        <Pressable onPress={() => setShowLocation(true)} style={styles.location}>
-          <View><Text style={styles.label}>MAP POSITION — OPTIONAL</Text><Text style={styles.locationValue}>{values.latitude && values.longitude ? `${values.latitude}, ${values.longitude}` : 'Choose a position on the map'}</Text></View>
+        <TextField label="Journey title" value={values.title} onChangeText={update('title')} placeholder="Medina 2025" autoCapitalize="words" />
+        <TextField label="Destination" value={values.destination} onChangeText={update('destination')} placeholder="Medina" autoCapitalize="words" />
+        <TextField label="Country" value={values.country} onChangeText={update('country')} placeholder="Saudi Arabia" autoCapitalize="words" />
+        <Pressable accessibilityRole="button" accessibilityLabel="Choose journey position on map" onPress={() => setShowLocation(true)} style={styles.location}>
+          <View style={styles.locationCopy}><Text style={styles.label}>MAP POSITION — OPTIONAL</Text><Text numberOfLines={1} style={styles.locationValue}>{formatCoordinates(values.latitude, values.longitude) ?? 'Choose a position on the map'}</Text></View>
           <Text style={styles.locationAction}>{values.latitude ? 'Change' : 'Set'}</Text>
         </Pressable>
         <View style={styles.dateRow}><DateButton label="Start date" value={values.start_date} onPress={() => setActiveDate('start_date')} /><DateButton label="End date" value={values.end_date} onPress={() => setActiveDate('end_date')} /></View>
         {activeDate ? <View style={styles.datePicker}><DateTimePicker value={toDate(values[activeDate])} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={changeDate} />{Platform.OS === 'ios' ? <Pressable onPress={() => setActiveDate(null)} style={styles.dateDone}><Text style={styles.dateDoneText}>Done</Text></Pressable> : null}</View> : null}
-        <Text style={styles.label}>DESCRIPTION — OPTIONAL</Text><TextInput value={values.description ?? ''} onChangeText={update('description')} placeholder="What makes this journey special?" placeholderTextColor="#AAA79E" multiline textAlignVertical="top" style={styles.description} />
+        <TextField label="Description — optional" value={values.description ?? ''} onChangeText={update('description')} placeholder="What makes this journey special?" multiline contained />
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable disabled={isSubmitting} onPress={submit} style={({ pressed }) => [styles.button, pressed && styles.pressed, isSubmitting && styles.disabled]}>{isSubmitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>{submitLabel}</Text>}</Pressable>
+      {error ? <ErrorBanner message={error} /> : null}
+      <PrimaryButton loading={isSubmitting} onPress={() => void submit()}>{submitLabel}</PrimaryButton>
       {showLocation ? <JourneyLocationPicker latitude={values.latitude} longitude={values.longitude} onCancel={() => setShowLocation(false)} onChange={(coordinate) => { setValues((current) => ({ ...current, latitude: coordinate ? coordinate.latitude.toFixed(6) : null, longitude: coordinate ? coordinate.longitude.toFixed(6) : null })); setShowLocation(false); }} /> : null}
     </ScrollView></KeyboardAvoidingView></SafeAreaView>
   );
 }
 
-function FormField({ label, ...inputProps }: { label: string; value: string; placeholder: string; onChangeText: (value: string) => void }) { return <View style={styles.field}><Text style={styles.label}>{label.toUpperCase()}</Text><TextInput {...inputProps} placeholderTextColor="#AAA79E" autoCapitalize="words" style={styles.input} /></View>; }
 function DateButton({ label, value, onPress }: { label: string; value: string; onPress: () => void }) { return <Pressable onPress={onPress} style={styles.dateButton}><Text style={styles.label}>{label.toUpperCase()}</Text><Text style={styles.dateValue}>{displayDate(value)}</Text></Pressable>; }
 
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canvas }, content: { padding: 22, paddingBottom: 40 }, header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, cancel: { color: colors.accent, fontWeight: '700' }, eyebrow: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1.8 }, headerSpacer: { width: 48 }, heading: { marginTop: 42, fontSize: 38, lineHeight: 42, fontWeight: '800', color: colors.ink, letterSpacing: -1.5, maxWidth: 340 }, form: { marginTop: 28 }, field: { borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 13 }, label: { color: colors.muted, fontSize: 9, letterSpacing: 1.5, fontWeight: '800' }, input: { paddingVertical: 8, fontSize: 20, color: colors.ink }, dateRow: { flexDirection: 'row', gap: 14, marginTop: 12 }, dateButton: { flex: 1, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 14 }, dateValue: { color: colors.ink, fontSize: 15, marginTop: 9 }, datePicker: { backgroundColor: '#ECE8DE', borderRadius: 18, marginTop: 12, overflow: 'hidden' }, dateDone: { alignSelf: 'flex-end', paddingHorizontal: 18, paddingBottom: 12 }, dateDoneText: { color: colors.accent, fontWeight: '800' }, location: { minHeight: 70, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, locationValue: { color: colors.ink, fontSize: 15, marginTop: 8 }, locationAction: { color: colors.accent, fontSize: 13, fontWeight: '800' }, description: { minHeight: 100, borderBottomWidth: 1, borderBottomColor: colors.line, paddingTop: 12, color: colors.ink, fontSize: 17, lineHeight: 23 }, error: { color: '#A33D2D', fontSize: 13, marginTop: 14 }, button: { marginTop: 28, backgroundColor: colors.ink, borderRadius: 18, height: 58, alignItems: 'center', justifyContent: 'center' }, buttonText: { color: '#FFF', fontSize: 16, fontWeight: '800' }, pressed: { opacity: 0.86 }, disabled: { opacity: 0.65 } });
+const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canvas }, content: { padding: spacing.screen, paddingBottom: 40, gap: spacing.lg }, heading: { ...typography.display, color: colors.ink, marginTop: spacing.md, maxWidth: 340 }, form: { gap: spacing.md }, label: { ...typography.eyebrow, color: colors.muted, fontSize: 9, lineHeight: 13, letterSpacing: 1.5 }, dateRow: { flexDirection: 'row', gap: 14 }, dateButton: { flex: 1, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 14 }, dateValue: { ...typography.body, color: colors.ink, marginTop: 9 }, datePicker: { backgroundColor: colors.surfaceWarm, borderRadius: radii.lg, overflow: 'hidden' }, dateDone: { alignSelf: 'flex-end', paddingHorizontal: 18, paddingBottom: 12 }, dateDoneText: { color: colors.accent, fontWeight: '800' }, location: { minHeight: 70, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, locationCopy: { flex: 1 }, locationValue: { ...typography.body, color: colors.ink, marginTop: spacing.xs }, locationAction: { ...typography.button, color: colors.accent, fontSize: 13 } });
