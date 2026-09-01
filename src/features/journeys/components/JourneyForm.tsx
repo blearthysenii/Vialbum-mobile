@@ -60,10 +60,10 @@ export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSu
       <Text style={styles.heading}>{heading}</Text>
       <View style={styles.form}>
         <TextField label="Journey title" value={values.title} onChangeText={update('title')} placeholder="Medina 2025" autoCapitalize="words" />
-        <TextField label="Destination" value={values.destination} onChangeText={update('destination')} placeholder="Medina" autoCapitalize="words" />
-        <TextField label="Country" value={values.country} onChangeText={update('country')} placeholder="Saudi Arabia" autoCapitalize="words" />
-        <Pressable accessibilityRole="button" accessibilityLabel="Choose journey position on map" onPress={() => setShowLocation(true)} style={styles.location}>
-          <View style={styles.locationCopy}><Text style={styles.label}>MAP POSITION — OPTIONAL</Text><Text numberOfLines={1} style={styles.locationValue}>{formatCoordinates(values.latitude, values.longitude) ?? 'Choose a position on the map'}</Text></View>
+        <TextField label="Destination" value={values.destination} onChangeText={update('destination')} placeholder="Medina" autoCapitalize="words" editable={!values.place} />
+        <TextField label="Country" value={values.country} onChangeText={update('country')} placeholder="Saudi Arabia" autoCapitalize="words" editable={!values.place} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Search or choose journey place" onPress={() => setShowLocation(true)} style={styles.location}>
+          <View style={styles.locationCopy}><Text style={styles.label}>LOCATION / PLACE — OPTIONAL</Text><Text numberOfLines={1} style={styles.locationValue}>{values.place?.display_name ?? formatCoordinates(values.latitude, values.longitude) ?? 'Search for a place or choose a map point'}</Text></View>
           <Text style={styles.locationAction}>{values.latitude ? 'Change' : 'Set'}</Text>
         </Pressable>
         <View style={styles.dateRow}><DateButton label="Start date" value={values.start_date} onPress={() => setActiveDate('start_date')} /><DateButton label="End date" value={values.end_date} onPress={() => setActiveDate('end_date')} /></View>
@@ -72,7 +72,17 @@ export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSu
       </View>
       {error ? <ErrorBanner message={error} /> : null}
       <PrimaryButton loading={isSubmitting} onPress={() => void submit()}>{submitLabel}</PrimaryButton>
-      {showLocation ? <JourneyLocationPicker latitude={values.latitude} longitude={values.longitude} onCancel={() => setShowLocation(false)} onChange={(coordinate) => { setValues((current) => ({ ...current, latitude: coordinate ? coordinate.latitude.toFixed(6) : null, longitude: coordinate ? coordinate.longitude.toFixed(6) : null })); setShowLocation(false); }} /> : null}
+      {showLocation ? <JourneyLocationPicker latitude={values.latitude} longitude={values.longitude} place={values.place ?? null} onCancel={() => setShowLocation(false)} onChange={(selection) => {
+        setValues((current) => selection ? ({
+          ...current,
+          destination: selection.place?.name ?? current.destination,
+          country: selection.place?.country ?? current.country,
+          latitude: selection.coordinate.latitude.toFixed(6),
+          longitude: selection.coordinate.longitude.toFixed(6),
+          place: selection.place ?? current.place,
+        }) : ({ ...current, latitude: null, longitude: null, place: current.place ? null : current.place }));
+        setShowLocation(false);
+      }} /> : null}
     </ScrollView></KeyboardAvoidingView></SafeAreaView>
   );
 }
