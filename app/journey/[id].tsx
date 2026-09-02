@@ -9,6 +9,9 @@ import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui/Feedback'
 import { BackButton } from '@/components/ui/Headers';
 import { useJourneys } from '@/features/journeys/JourneyProvider';
 import type { Journey } from '@/features/journeys/types';
+import { exportApi } from '@/features/exports/api';
+import { ExportProgress } from '@/features/exports/components/ExportProgress';
+import { safeExportFilename, type ExportState } from '@/features/exports/utils';
 import { mediaApi } from '@/features/media/api';
 import { PhotoUploader } from '@/features/media/components/PhotoUploader';
 import type { JourneyMedia } from '@/features/media/types';
@@ -36,6 +39,7 @@ export default function JourneyDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ memory: Memory | null } | null>(null);
+  const [exportState, setExportState] = useState<ExportState>('idle');
 
   useEffect(() => {
     void fetchOne(id).then(setJourney).catch(() => setError(true));
@@ -106,6 +110,34 @@ export default function JourneyDetailsScreen() {
           style: 'destructive',
           onPress: () => void remove(id).then(() => router.replace('/')),
         },
+      ],
+    );
+  }
+
+  async function runExport(includeMedia: boolean) {
+    if (!journey || exportState !== 'idle') return;
+    try {
+      await exportApi.journey(
+        journey.id,
+        includeMedia,
+        safeExportFilename(journey.title, journey.start_date.slice(0, 4)),
+        setExportState,
+      );
+    } catch (caught) {
+      Alert.alert('Export unavailable', caught instanceof Error ? caught.message : 'Please try again.');
+    } finally {
+      setExportState('idle');
+    }
+  }
+
+  function chooseExport() {
+    Alert.alert(
+      'Export Journey',
+      'Create a private, portable ZIP with your journey data. Choose whether to include photo files.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Data Only', onPress: () => void runExport(false) },
+        { text: 'Data + Photos', onPress: () => void runExport(true) },
       ],
     );
   }
@@ -184,6 +216,7 @@ export default function JourneyDetailsScreen() {
           {journey.description ? <Text style={styles.description}>{journey.description}</Text> : null}
           {summary ? <JourneyStats summary={summary} /> : null}
           <SecondaryButton accessibilityLabel="View journey story" onPress={() => router.push({ pathname: '/journey/[id]/recap', params: { id } })}>View Story</SecondaryButton>
+          <QuietButton accessibilityLabel="Export this journey" disabled={exportState !== 'idle'} onPress={chooseExport}>Export Journey</QuietButton>
           <View style={styles.rule} />
           <Text style={styles.section}>Memories & Photos</Text>
           <QuietButton disabled={loading} style={timelineStyles.add} onPress={() => setEditor({ memory: null })}>Add Memory</QuietButton>
@@ -210,6 +243,7 @@ export default function JourneyDetailsScreen() {
           photo.memory_id === deletedMemoryId ? { ...photo, memory_id: null } : photo));
       }}
     /> : null}
+    <ExportProgress state={exportState} />
   </View>;
 }
 
