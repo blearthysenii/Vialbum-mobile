@@ -13,6 +13,7 @@ export type Journey = {
   place_id: string | null;
   place: Place | null;
   cover_media_url: string | null;
+  cover_media_id: string | null;
   created_at: string;
   updated_at: string;
 };
