@@ -13,7 +13,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Vialbum to add selected photographs to your private travel albums."
+          "photosPermission": "Vialbum uses photo access so you can add selected travel photos to your private journeys.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],
@@ -22,7 +24,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vialbum.app"
+      "bundleIdentifier": "com.vialbum.app",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.vialbum.app",

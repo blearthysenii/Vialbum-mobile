@@ -9,8 +9,6 @@ function exifDate(value: unknown): string | undefined {
 }
 
 export async function pickPhotos(): Promise<SelectedPhoto[]> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) throw new Error('Photo library access is needed to add memories.');
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsMultipleSelection: true,
