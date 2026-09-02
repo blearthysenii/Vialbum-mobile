@@ -17,6 +17,11 @@ export class ApiError extends Error {
   }
 }
 
+export function apiBaseUrl() {
+  if (!API_URL) throw new ApiError('The API URL is not configured.', 0);
+  return API_URL;
+}
+
 type RequestOptions = Omit<RequestInit, 'body'> & {
   authenticated?: boolean;
   body?: unknown;
@@ -35,15 +40,23 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   const { authenticated: _authenticated, token: _token, body, ...requestOptions } = options;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  const abort = () => controller.abort();
+  options.signal?.addEventListener('abort', abort, { once: true });
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...requestOptions,
+      signal: controller.signal,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new ApiError('Unable to reach Vialbum. Check your connection and try again.', 0);
+  } finally {
+    clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abort);
   }
 
   const payload = await response.json().catch(() => null);
@@ -83,6 +96,8 @@ export async function apiUpload<T>(
       if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
     };
     request.onerror = () => reject(new ApiError('The photo upload lost its connection.', 0));
+    request.timeout = 120000;
+    request.ontimeout = () => reject(new ApiError('The photo upload timed out. Please try again.', 0));
     request.onload = () => {
       const payload = (() => {
         try { return JSON.parse(request.responseText); } catch { return null; }
