@@ -7,4 +7,7 @@ export const authApi = {
   login: (email: string, password: string) =>
     apiRequest<AccessToken>('/auth/login', { method: 'POST', body: { email, password } }),
   me: (token: string) => apiRequest<AuthUser>('/auth/me', { token }),
+  deleteAccount: (password: string) => apiRequest<void>('/auth/account', {
+    method: 'DELETE', authenticated: true, body: { confirmation: 'DELETE', password },
+  }),
 };

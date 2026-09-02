@@ -3,6 +3,7 @@ import { createContext, PropsWithChildren, useCallback, useContext, useEffect, u
 import { setUnauthorizedHandler } from '@/api/client';
 import { authApi } from '@/features/auth/api';
 import { tokenStorage } from '@/features/auth/storage';
+import { clearPrivateLocalData } from '@/features/auth/cleanup';
 import type { AuthUser, SignUpInput } from '@/features/auth/types';
 
 type AuthContextValue = {
@@ -11,6 +12,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -45,6 +47,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     await tokenStorage.remove();
+    await clearPrivateLocalData();
+    setUser(null);
+  }, []);
+
+  const deleteAccount = useCallback(async (password: string) => {
+    await authApi.deleteAccount(password);
+    await tokenStorage.remove();
+    await clearPrivateLocalData();
     setUser(null);
   }, []);
 
@@ -74,8 +84,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, isRestoring, signIn, signUp, signOut }),
-    [isRestoring, signIn, signOut, signUp, user],
+    () => ({ user, isRestoring, signIn, signUp, signOut, deleteAccount }),
+    [deleteAccount, isRestoring, signIn, signOut, signUp, user],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
