@@ -190,9 +190,9 @@ export default function JourneyRecapScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas },
   hero: { height: 560, overflow: 'hidden', backgroundColor: '#667064' },
-  fallback: { ...StyleSheet.absoluteFillObject, backgroundColor: '#667064' },
+  fallback: { position: 'absolute', inset: 0, backgroundColor: '#667064' },
   sun: { position: 'absolute', width: 340, height: 340, borderRadius: 170, right: -70, top: 95, backgroundColor: '#D5B276', opacity: 0.85 },
-  shade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(13,13,10,0.34)' },
+  shade: { position: 'absolute', inset: 0, backgroundColor: 'rgba(13,13,10,0.34)' },
   heroSafe: { flex: 1, justifyContent: 'space-between', padding: spacing.lg, paddingBottom: spacing.xl },
   eyebrow: { ...typography.eyebrow, color: colors.onDark },
   heroTitle: { ...typography.display, color: colors.onDark, fontSize: 52, lineHeight: 54, marginTop: spacing.sm },
