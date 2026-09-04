@@ -5,8 +5,8 @@ import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { controlHeights, typography } from '@/theme/tokens';
 
-export function SheetHeader({ title, onClose, trailing }: { title: string; onClose: () => void; trailing?: ReactNode }) {
-  return <View style={styles.sheet}><Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} onPress={onClose} style={styles.side}><Text style={styles.action}>Cancel</Text></Pressable><Text style={styles.sheetTitle}>{title}</Text><View style={styles.side}>{trailing}</View></View>;
+export function SheetHeader({ title, onClose, trailing }: { title: string; onClose?: () => void; trailing?: ReactNode }) {
+  return <View style={styles.sheet}><View style={styles.side}>{onClose ? <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} onPress={onClose}><Text style={styles.action}>Cancel</Text></Pressable> : null}</View><Text style={styles.sheetTitle}>{title}</Text><View style={styles.side}>{trailing}</View></View>;
 }
 
 export function ScreenHeader({ eyebrow, title, trailing }: { eyebrow?: string; title: string; trailing?: ReactNode }) {
