@@ -1,5 +1,5 @@
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { JourneyLocationPicker } from '@/features/journeys/components/JourneyLocationPicker';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,6 +11,7 @@ import { ErrorBanner } from '@/components/ui/Feedback';
 import { SheetHeader } from '@/components/ui/Headers';
 import { TextField } from '@/components/ui/TextField';
 import type { JourneyInput } from '@/features/journeys/types';
+import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radii, typography } from '@/theme/tokens';
@@ -28,7 +29,9 @@ const toApiDate = (value: Date) => {
 };
 const displayDate = (value: string) => formatCalendarDate(value, { month: 'long', day: 'numeric', year: 'numeric' });
 
-export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSubmit, onCancel }: { eyebrow: string; heading: string; submitLabel: string; initialValues: JourneyFormValues; onSubmit: (values: JourneyFormValues) => Promise<void>; onCancel: () => void }) {
+export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, initialValues, onSubmit, onCancel }: { embedded?: boolean; eyebrow: string; heading: string; submitLabel: string; initialValues: JourneyFormValues; onSubmit: (values: JourneyFormValues) => Promise<void>; onCancel?: () => void }) {
+  const tabBarScroll = useTabBarScroll();
+  const scrollRef = useRef<ScrollView>(null);
   const [values, setValues] = useState(initialValues);
   const [activeDate, setActiveDate] = useState<DateField | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,24 +58,74 @@ export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSu
   }
 
   return (
-    <SafeAreaView style={styles.safe}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
-      <SheetHeader title={eyebrow} onClose={onCancel} />
-      <Text style={styles.heading}>{heading}</Text>
-      <View style={styles.form}>
-        <TextField label="Journey title" value={values.title} onChangeText={update('title')} placeholder="Medina 2025" autoCapitalize="words" />
-        <TextField label="Destination" value={values.destination} onChangeText={update('destination')} placeholder="Medina" autoCapitalize="words" editable={!values.place} />
-        <TextField label="Country" value={values.country} onChangeText={update('country')} placeholder="Saudi Arabia" autoCapitalize="words" editable={!values.place} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Search or choose journey place" onPress={() => setShowLocation(true)} style={styles.location}>
-          <View style={styles.locationCopy}><Text style={styles.label}>LOCATION / PLACE — OPTIONAL</Text><Text numberOfLines={1} style={styles.locationValue}>{values.place?.display_name ?? formatCoordinates(values.latitude, values.longitude) ?? 'Search for a place or choose a map point'}</Text></View>
-          <Text style={styles.locationAction}>{values.latitude ? 'Change' : 'Set'}</Text>
-        </Pressable>
-        <View style={styles.dateRow}><DateButton label="Start date" value={values.start_date} onPress={() => setActiveDate('start_date')} /><DateButton label="End date" value={values.end_date} onPress={() => setActiveDate('end_date')} /></View>
-        {activeDate ? <View style={styles.datePicker}><DateTimePicker value={toDate(values[activeDate])} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={changeDate} />{Platform.OS === 'ios' ? <Pressable onPress={() => setActiveDate(null)} style={styles.dateDone}><Text style={styles.dateDoneText}>Done</Text></Pressable> : null}</View> : null}
-        <TextField label="Description — optional" value={values.description ?? ''} onChangeText={update('description')} placeholder="What makes this journey special?" multiline contained />
-      </View>
-      {error ? <ErrorBanner message={error} /> : null}
-      <PrimaryButton loading={isSubmitting} onPress={() => void submit()}>{submitLabel}</PrimaryButton>
-      {showLocation ? <JourneyLocationPicker latitude={values.latitude} longitude={values.longitude} place={values.place ?? null} onCancel={() => setShowLocation(false)} onChange={(selection) => {
+    <SafeAreaView style={styles.safe} edges={embedded ? ['top'] : undefined}>
+      <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          {...tabBarScroll}
+          ref={scrollRef}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          contentContainerStyle={[styles.content, embedded && styles.embeddedContent]}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {embedded ? (
+            <View style={styles.embeddedHeader}>
+              <Text style={styles.embeddedHeaderTitle}>New album</Text>
+            </View>
+          ) : (
+            <SheetHeader title={eyebrow} onClose={onCancel} />
+          )}
+
+          <View style={[styles.intro, embedded && styles.embeddedIntro]}>
+            {!embedded ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+            <Text style={[styles.heading, embedded && styles.embeddedHeading]}>{heading}</Text>
+            {embedded ? (
+              <Text style={styles.introCopy}>
+                Give this journey a home. Add photos and memories whenever you are ready.
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.form}>
+            <View style={[styles.fieldGroup, embedded && styles.embeddedGroup]}>
+              <TextField label="Journey title" value={values.title} onChangeText={update('title')} placeholder="Medina 2025" autoCapitalize="words" />
+              <TextField label="Destination" value={values.destination} onChangeText={update('destination')} placeholder="Medina" autoCapitalize="words" editable={!values.place} />
+              <TextField label="Country" value={values.country} onChangeText={update('country')} placeholder="Saudi Arabia" autoCapitalize="words" editable={!values.place} />
+            </View>
+
+            <Pressable accessibilityRole="button" accessibilityLabel="Search or choose journey place" onPress={() => setShowLocation(true)} style={[styles.location, embedded && styles.embeddedCard]}>
+              <View style={styles.locationCopy}><Text style={styles.label}>LOCATION / PLACE — OPTIONAL</Text><Text numberOfLines={1} style={styles.locationValue}>{values.place?.display_name ?? formatCoordinates(values.latitude, values.longitude) ?? 'Search or choose on map'}</Text></View>
+              <Text style={styles.locationAction}>{values.latitude ? 'Change' : 'Add'}</Text>
+            </Pressable>
+
+            <View style={[styles.dateRow, embedded && styles.embeddedCard]}>
+              <DateButton label="Start date" value={values.start_date} onPress={() => setActiveDate('start_date')} embedded={embedded} />
+              <View style={embedded ? styles.dateDivider : undefined} />
+              <DateButton label="End date" value={values.end_date} onPress={() => setActiveDate('end_date')} embedded={embedded} />
+            </View>
+
+            {activeDate ? <View style={styles.datePicker}><DateTimePicker value={toDate(values[activeDate])} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={changeDate} />{Platform.OS === 'ios' ? <Pressable onPress={() => setActiveDate(null)} style={styles.dateDone}><Text style={styles.dateDoneText}>Done</Text></Pressable> : null}</View> : null}
+
+            <View style={embedded ? styles.descriptionCard : undefined}>
+              <TextField
+                label="Description — optional"
+                value={values.description ?? ''}
+                onChangeText={update('description')}
+                onFocus={() => {
+                  setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 180);
+                }}
+                placeholder="What makes this journey special?"
+                multiline
+                contained={!embedded}
+              />
+            </View>
+          </View>
+
+          {error ? <ErrorBanner message={error} /> : null}
+          <PrimaryButton loading={isSubmitting} onPress={() => void submit()} style={embedded ? styles.createButton : undefined}>{submitLabel}</PrimaryButton>
+
+          {showLocation ? <JourneyLocationPicker latitude={values.latitude} longitude={values.longitude} place={values.place ?? null} onCancel={() => setShowLocation(false)} onChange={(selection) => {
         setValues((current) => selection ? ({
           ...current,
           destination: selection.place?.name ?? current.destination,
@@ -83,10 +136,43 @@ export function JourneyForm({ eyebrow, heading, submitLabel, initialValues, onSu
         }) : ({ ...current, latitude: null, longitude: null, place: current.place ? null : current.place }));
         setShowLocation(false);
       }} /> : null}
-    </ScrollView></KeyboardAvoidingView></SafeAreaView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
-function DateButton({ label, value, onPress }: { label: string; value: string; onPress: () => void }) { return <Pressable onPress={onPress} style={styles.dateButton}><Text style={styles.label}>{label.toUpperCase()}</Text><Text style={styles.dateValue}>{displayDate(value)}</Text></Pressable>; }
+function DateButton({ label, value, onPress, embedded = false }: { label: string; value: string; onPress: () => void; embedded?: boolean }) { return <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${displayDate(value)}`} onPress={onPress} style={[styles.dateButton, embedded && styles.embeddedDateButton]}><Text style={styles.label}>{label.toUpperCase()}</Text><Text style={styles.dateValue}>{displayDate(value)}</Text></Pressable>; }
 
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canvas }, content: { padding: spacing.screen, paddingBottom: 40, gap: spacing.lg }, heading: { ...typography.display, color: colors.ink, marginTop: spacing.md, maxWidth: 340 }, form: { gap: spacing.md }, label: { ...typography.eyebrow, color: colors.muted, fontSize: 9, lineHeight: 13, letterSpacing: 1.5 }, dateRow: { flexDirection: 'row', gap: 14 }, dateButton: { flex: 1, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 14 }, dateValue: { ...typography.body, color: colors.ink, marginTop: 9 }, datePicker: { backgroundColor: colors.surfaceWarm, borderRadius: radii.lg, overflow: 'hidden' }, dateDone: { alignSelf: 'flex-end', paddingHorizontal: 18, paddingBottom: 12 }, dateDoneText: { color: colors.accent, fontWeight: '800' }, location: { minHeight: 70, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, locationCopy: { flex: 1 }, locationValue: { ...typography.body, color: colors.ink, marginTop: spacing.xs }, locationAction: { ...typography.button, color: colors.accent, fontSize: 13 } });
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.canvas },
+  content: { padding: spacing.screen, paddingBottom: 40, gap: spacing.lg },
+  embeddedContent: { paddingTop: 10, paddingBottom: 150, gap: 0 },
+  embeddedHeader: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line, marginHorizontal: -spacing.screen, paddingHorizontal: spacing.screen },
+  embeddedHeaderTitle: { ...typography.cardTitle, color: colors.ink, fontSize: 17, lineHeight: 22 },
+  intro: { gap: spacing.xs },
+  embeddedIntro: { marginTop: spacing.xl, marginBottom: spacing.xl },
+  eyebrow: { ...typography.eyebrow, color: colors.accent },
+  heading: { ...typography.display, color: colors.ink, maxWidth: 340 },
+  embeddedHeading: { ...typography.screenTitle, fontSize: 36, lineHeight: 40 },
+  introCopy: { ...typography.bodyLarge, color: colors.muted, marginTop: spacing.sm, maxWidth: 350 },
+  form: { gap: spacing.md },
+  fieldGroup: { gap: spacing.md },
+  embeddedGroup: { backgroundColor: colors.surface, borderRadius: radii.lg, paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xs, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
+  embeddedCard: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, paddingHorizontal: spacing.md },
+  label: { ...typography.eyebrow, color: colors.muted, fontSize: 9, lineHeight: 13, letterSpacing: 1.5 },
+  dateRow: { flexDirection: 'row', gap: 14 },
+  dateButton: { flex: 1, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 14 },
+  embeddedDateButton: { borderBottomWidth: 0, minHeight: 72, justifyContent: 'center' },
+  dateDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: colors.line, marginVertical: spacing.sm },
+  dateValue: { ...typography.body, color: colors.ink, marginTop: 9 },
+  datePicker: { backgroundColor: colors.surfaceWarm, borderRadius: radii.lg, overflow: 'hidden' },
+  dateDone: { alignSelf: 'flex-end', paddingHorizontal: 18, paddingBottom: 12 },
+  dateDoneText: { color: colors.accent, fontWeight: '800' },
+  location: { minHeight: 70, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  locationCopy: { flex: 1 },
+  locationValue: { ...typography.body, color: colors.ink, marginTop: spacing.xs },
+  locationAction: { ...typography.button, color: colors.accent, fontSize: 13 },
+  descriptionCard: { minHeight: 118, backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+  createButton: { marginTop: spacing.lg, borderRadius: radii.lg },
+});
