@@ -10,6 +10,7 @@ import { DeleteAccountSheet } from '@/features/account/components/DeleteAccountS
 import { exportApi } from '@/features/exports/api';
 import { ExportProgress } from '@/features/exports/components/ExportProgress';
 import type { ExportState } from '@/features/exports/utils';
+import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
 import { DestructiveButton, SecondaryButton } from '@/components/ui/Button';
 import { ScreenHeader } from '@/components/ui/Headers';
 import { MetadataRow } from '@/components/ui/Metadata';
@@ -18,6 +19,7 @@ import { spacing } from '@/theme/spacing';
 import { radii, typography } from '@/theme/tokens';
 
 export default function ProfileScreen() {
+  const tabBarScroll = useTabBarScroll();
   const { user, signOut, deleteAccount } = useAuth();
   const initials = `${user?.first_name[0] ?? ''}${user?.last_name[0] ?? ''}`.toUpperCase();
   const [exportState, setExportState] = useState<ExportState>('idle');
@@ -49,7 +51,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView {...tabBarScroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ScreenHeader eyebrow="YOUR SPACE" title="Profile" />
         <View style={styles.profile}><View style={styles.avatar}><Text style={styles.initial}>{initials || 'V'}</Text></View>
           <Text style={styles.title}>{user?.first_name} {user?.last_name}</Text><Text style={styles.copy}>A quiet home for the places and moments you want to keep.</Text>
