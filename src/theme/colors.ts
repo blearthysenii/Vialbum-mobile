@@ -1,5 +1,6 @@
 export const colors = {
   canvas: '#FFFFFF',
+  glassCanvas: '#F2F0EC',
   surface: '#FFFFFF',
   surfaceWarm: '#E8E3D8',
   surfaceSubtle: '#EEE9DE',
