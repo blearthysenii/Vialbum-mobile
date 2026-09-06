@@ -1,14 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Keyboard, Platform, Pressable, SectionList, StyleSheet, Text, TextInput, View,
+  AccessibilityInfo, ActivityIndicator, Animated, Keyboard, Platform, Pressable,
+  SectionList, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/client';
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui/Feedback';
+import { ErrorBanner } from '@/components/ui/Feedback';
 import { searchApi } from '@/features/search/api';
 import { recentSearchStorage } from '@/features/search/storage';
 import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
@@ -19,7 +21,7 @@ import {
 } from '@/features/search/utils';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
-import { radii, typography } from '@/theme/tokens';
+import { typography } from '@/theme/tokens';
 import { formatCalendarDate, formatDateRange } from '@/utils/format';
 
 function resultTitle(item: SearchResult) {
@@ -34,28 +36,59 @@ function resultDetail(item: SearchResult) {
   return [formatCalendarDate(item.date), location, context].filter(Boolean).join(' · ');
 }
 
-function SearchResultRow({ item }: { item: SearchResult }) {
+const resultIcons = {
+  journey: 'airplane-outline',
+  memory: 'book-outline',
+  photo: 'image-outline',
+} as const;
+
+function SearchResultRow({ item, index, reduceMotion }: { item: SearchResult; index: number; reduceMotion: boolean }) {
   const thumbnail = item.type === 'journey' || item.type === 'photo' ? item.thumbnail_url : null;
   const title = resultTitle(item);
+  const entrance = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (reduceMotion) { entrance.setValue(1); return; }
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 260,
+      delay: Math.min(index * 38, 190),
+      useNativeDriver: true,
+    }).start();
+  }, [entrance, index, reduceMotion]);
+
+  const animatePress = (pressed: boolean) => Animated.timing(pressScale, {
+    toValue: pressed ? 0.985 : 1,
+    duration: pressed ? 100 : 150,
+    useNativeDriver: true,
+  }).start();
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${item.type} result, ${title}, ${resultMetadata(item)}`}
-      onPress={() => router.push(searchNavigationTarget(item) as never)}
-      style={({ pressed }) => [styles.result, pressed && styles.pressed]}
-    >
-      <View style={[styles.thumbnail, item.type === 'memory' && styles.memoryThumbnail]}>
-        {thumbnail ? (
-          <Image source={thumbnail} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={`search:${item.type}:${item.id}`} />
-        ) : <Text style={styles.placeholder}>{item.type === 'memory' ? 'M' : 'V'}</Text>}
-      </View>
-      <View style={styles.resultCopy}>
-        <Text numberOfLines={1} style={styles.resultTitle}>{title}</Text>
-        <Text numberOfLines={1} style={styles.resultMeta}>{resultMetadata(item)}</Text>
-        <Text numberOfLines={2} style={styles.resultDetail}>{resultDetail(item)}</Text>
-      </View>
-      <View style={styles.chevron} />
-    </Pressable>
+    <Animated.View style={{ opacity: entrance, transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }, { scale: pressScale }] }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${item.type} result, ${title}, ${resultMetadata(item)}`}
+        onPress={() => router.push(searchNavigationTarget(item) as never)}
+        onPressIn={() => animatePress(true)}
+        onPressOut={() => animatePress(false)}
+        style={styles.result}
+      >
+        <BlurView pointerEvents="none" intensity={36} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+        <View pointerEvents="none" style={styles.resultTint} />
+        <View style={[styles.thumbnail, item.type === 'memory' && styles.memoryThumbnail]}>
+          {thumbnail ? (
+            <Image source={thumbnail} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={`search:${item.type}:${item.id}`} />
+          ) : <Ionicons name={resultIcons[item.type]} size={21} color={colors.accent} />}
+        </View>
+        <View style={styles.resultCopy}>
+          <Text numberOfLines={1} style={styles.resultTitle}>{title}</Text>
+          <View style={styles.typeRow}><Ionicons name={resultIcons[item.type]} size={12} color={colors.accent} /><Text numberOfLines={1} style={styles.resultMeta}>{resultMetadata(item)}</Text></View>
+          <Text numberOfLines={2} style={styles.resultDetail}>{resultDetail(item)}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={17} color={colors.subtle} />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -68,10 +101,18 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [focusRefresh, setFocusRefresh] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
+  const searchScale = useRef(new Animated.Value(1)).current;
   const normalized = normalizeSearchQuery(query);
 
   useEffect(() => { void recentSearchStorage.get().then(setRecent); }, []);
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => subscription.remove();
+  }, []);
   useFocusEffect(useCallback(() => {
     if (normalizeSearchQuery(query).length >= SEARCH_MIN_LENGTH) setFocusRefresh((value) => value + 1);
   }, [query]));
@@ -108,6 +149,15 @@ export default function SearchScreen() {
     if (normalized.length < SEARCH_MIN_LENGTH) return;
     Keyboard.dismiss(); remember(normalized); setRetryKey((value) => value + 1);
   };
+  const setSearchFocus = (nextFocused: boolean) => {
+    setFocused(nextFocused);
+    if (!reduceMotion) Animated.timing(searchScale, { toValue: nextFocused ? 1.008 : 1, duration: 180, useNativeDriver: true }).start();
+  };
+  const removeRecent = (value: string) => {
+    const next = recent.filter((item) => item !== value);
+    setRecent(next);
+    void recentSearchStorage.set(next);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -124,14 +174,18 @@ export default function SearchScreen() {
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Search</Text>
           </View>
-          <View style={styles.searchBox}>
-            <Ionicons name="search" color={colors.muted} size={20} />
+          <Animated.View style={[styles.searchShell, focused && styles.searchShellFocused, { transform: [{ scale: searchScale }] }]}>
+            <BlurView pointerEvents="none" intensity={44} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+            <View pointerEvents="none" style={styles.searchTint} />
+            <Ionicons name="search" color={focused ? colors.ink : colors.muted} size={19} />
             <TextInput
               accessibilityLabel="Search journeys, memories, photos, and places"
               autoCapitalize="none"
               autoCorrect={false}
               clearButtonMode="never"
               onChangeText={setQuery}
+              onFocus={() => setSearchFocus(true)}
+              onBlur={() => setSearchFocus(false)}
               onSubmitEditing={submit}
               placeholder="Journeys, memories, places…"
               placeholderTextColor={colors.placeholder}
@@ -139,25 +193,25 @@ export default function SearchScreen() {
               value={query}
               style={styles.input}
             />
-            {query.length > 0 ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={8} onPress={() => setQuery('')} style={styles.clear}><Ionicons name="close-circle" color={colors.subtle} size={19} /></Pressable> : null}
-          </View>
+            {query.length > 0 ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={8} onPress={() => setQuery('')} style={({ pressed }) => [styles.clear, pressed && styles.clearPressed]}><Ionicons name="close-circle" color={colors.subtle} size={19} /></Pressable> : null}
+          </Animated.View>
           {normalized.length === 1 ? <Text style={styles.hint}>Type one more character to search.</Text> : null}
-          {isLoading ? <LoadingState label="Searching your Vialbum…" /> : null}
+          {isLoading ? <View accessibilityRole="progressbar" style={styles.loading}><ActivityIndicator color={colors.muted} size="small" /><Text style={styles.loadingText}>Searching…</Text></View> : null}
           {!isLoading && error ? <ErrorBanner message={error} onRetry={() => setRetryKey((value) => value + 1)} /> : null}
           {!isLoading && !error && normalized.length < SEARCH_MIN_LENGTH && recent.length > 0 ? (
             <View style={styles.recentBlock}>
               <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Recent</Text><Pressable accessibilityRole="button" accessibilityLabel="Clear recent searches" hitSlop={8} onPress={() => { setRecent([]); void recentSearchStorage.clear(); }}><Text style={styles.clearAll}>Clear all</Text></Pressable></View>
-              <View style={styles.recentList}>{recent.map((item) => <Pressable accessibilityRole="button" accessibilityLabel={`Search for ${item}`} key={item.toLocaleLowerCase()} onPress={() => setQuery(item)} style={({ pressed }) => [styles.recentRow, pressed && styles.pressed]}><View style={styles.recentIcon}><Ionicons name="time-outline" color={colors.muted} size={19} /></View><Text numberOfLines={1} style={styles.recentText}>{item}</Text><Ionicons name="chevron-forward" color={colors.subtle} size={17} /></Pressable>)}</View>
+              <View style={styles.recentList}>{recent.map((item) => <View key={item.toLocaleLowerCase()} style={styles.recentRow}><Pressable accessibilityRole="button" accessibilityLabel={`Search for ${item}`} onPress={() => setQuery(item)} style={({ pressed }) => [styles.recentTarget, pressed && styles.pressed]}><View style={styles.recentIcon}><Ionicons name="time-outline" color={colors.muted} size={18} /></View><Text numberOfLines={1} style={styles.recentText}>{item}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item} from recent searches`} hitSlop={8} onPress={() => removeRecent(item)} style={({ pressed }) => [styles.recentRemove, pressed && styles.pressed]}><Ionicons name="close" color={colors.subtle} size={17} /></Pressable></View>)}</View>
             </View>
           ) : null}
         </>}
         ListEmptyComponent={!isLoading && !error ? (
           normalized.length < SEARCH_MIN_LENGTH && recent.length === 0
-            ? <EmptyState title="Find what you remember." message="Search journeys, memories, photo captions, and places." mark="⌕" />
-            : searched ? <EmptyState title={`No results for “${response?.query}”`} message="Try a destination, memory title, photo caption, or place." mark="⌕" /> : null
+            ? <View style={styles.empty}><Ionicons name="search-outline" size={22} color={colors.subtle} /><Text style={styles.emptyTitle}>Find what you remember.</Text><Text style={styles.emptyCopy}>Journeys, memories, photographs, and places.</Text></View>
+            : searched ? <View style={styles.empty}><Ionicons name="search-outline" size={22} color={colors.subtle} /><Text style={styles.emptyTitle}>No results for “{response?.query}”</Text><Text style={styles.emptyCopy}>Try a destination, memory title, caption, or place.</Text></View> : null
         ) : null}
         renderSectionHeader={({ section }) => <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{section.title}</Text><Text style={styles.count}>{section.data.length}</Text></View>}
-        renderItem={({ item }) => <SearchResultRow item={item} />}
+        renderItem={({ item, index }) => <SearchResultRow item={item} index={index} reduceMotion={reduceMotion} />}
         SectionSeparatorComponent={() => <View style={styles.sectionGap} />}
       />
     </SafeAreaView>
@@ -166,10 +220,13 @@ export default function SearchScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.canvas }, content: { paddingHorizontal: spacing.screen, paddingTop: 4, paddingBottom: 140 }, grow: { flexGrow: 1 },
-  header: { minHeight: 48, alignItems: 'center', justifyContent: 'center' }, headerTitle: { ...typography.cardTitle, color: colors.ink, fontSize: 18, lineHeight: 23 },
-  searchBox: { minHeight: 48, borderRadius: radii.md, backgroundColor: colors.surfaceWarm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 14, marginTop: spacing.sm },
-  input: { flex: 1, color: colors.ink, fontSize: 16, paddingVertical: 10 }, clear: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
-  hint: { ...typography.metadata, color: colors.muted, marginTop: spacing.sm, paddingHorizontal: spacing.xs }, recentBlock: { marginTop: spacing.lg }, sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg, marginBottom: spacing.sm }, sectionTitle: { ...typography.cardTitle, color: colors.ink, fontSize: 18 }, clearAll: { ...typography.button, color: colors.accent, fontSize: 13 }, count: { ...typography.metadata, color: colors.subtle },
-  recentList: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line }, recentRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line }, recentIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceWarm }, recentText: { ...typography.body, flex: 1, color: colors.ink, fontSize: 16 },
-  result: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line }, pressed: { opacity: 0.65 }, thumbnail: { width: 68, height: 68, borderRadius: radii.sm, backgroundColor: colors.surfaceWarm, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }, memoryThumbnail: { backgroundColor: '#E4D2C7' }, placeholder: { color: colors.accent, fontSize: 20, fontWeight: '900' }, resultCopy: { flex: 1, gap: 2 }, resultTitle: { ...typography.cardTitle, fontSize: 17, lineHeight: 22, color: colors.ink }, resultMeta: { ...typography.metadata, color: colors.accent }, resultDetail: { ...typography.metadata, color: colors.muted, fontWeight: '400' }, chevron: { width: 8, height: 8, borderRightWidth: 1.5, borderTopWidth: 1.5, borderColor: colors.subtle, transform: [{ rotate: '45deg' }], marginRight: 3 }, sectionGap: { height: spacing.sm },
+  header: { minHeight: 54, justifyContent: 'center' }, headerTitle: { ...typography.screenTitle, color: colors.ink, fontSize: 32, lineHeight: 37 },
+  searchShell: { minHeight: 50, borderRadius: 17, backgroundColor: 'rgba(232,232,237,0.56)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.62)', flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, marginTop: 6, overflow: 'hidden' },
+  searchShellFocused: { borderColor: 'rgba(166,83,49,0.34)', backgroundColor: 'rgba(255,255,255,0.46)' }, searchTint: { position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.12)' },
+  input: { flex: 1, color: colors.ink, fontSize: 17, lineHeight: 22, paddingVertical: 10 }, clear: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' }, clearPressed: { opacity: 0.56, transform: [{ scale: 0.92 }] },
+  hint: { ...typography.metadata, color: colors.muted, marginTop: spacing.sm, paddingHorizontal: spacing.xs }, loading: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }, loadingText: { ...typography.metadata, color: colors.muted, fontWeight: '500' },
+  recentBlock: { marginTop: spacing.lg }, sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg, marginBottom: spacing.sm }, sectionTitle: { ...typography.cardTitle, color: colors.ink, fontSize: 19 }, clearAll: { ...typography.body, color: colors.accent, fontSize: 14, fontWeight: '600' }, count: { ...typography.metadata, color: colors.subtle },
+  recentList: { borderRadius: 22, backgroundColor: 'rgba(246,246,248,0.72)', paddingHorizontal: 14, overflow: 'hidden' }, recentRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(113,111,104,0.18)' }, recentTarget: { flex: 1, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 12 }, recentIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(118,118,128,0.10)' }, recentText: { ...typography.body, flex: 1, color: colors.ink, fontSize: 16 }, recentRemove: { width: 44, height: 50, alignItems: 'center', justifyContent: 'center' },
+  result: { minHeight: 92, flexDirection: 'row', alignItems: 'center', gap: 13, padding: 11, borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.26)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.58)' }, resultTint: { position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.08)' }, pressed: { opacity: 0.58 }, thumbnail: { width: 68, height: 68, borderRadius: 17, backgroundColor: 'rgba(232,227,216,0.72)', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }, memoryThumbnail: { backgroundColor: 'rgba(228,210,199,0.76)' }, resultCopy: { flex: 1, gap: 2 }, resultTitle: { ...typography.cardTitle, fontSize: 17, lineHeight: 22, color: colors.ink }, typeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 }, resultMeta: { ...typography.metadata, color: colors.accent }, resultDetail: { ...typography.metadata, color: colors.muted, fontWeight: '400', lineHeight: 17 }, sectionGap: { height: 10 },
+  empty: { flex: 1, minHeight: 260, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl }, emptyTitle: { ...typography.cardTitle, color: colors.ink, fontSize: 19, marginTop: 12, textAlign: 'center' }, emptyCopy: { ...typography.body, color: colors.muted, marginTop: 5, textAlign: 'center', maxWidth: 290 },
 });
