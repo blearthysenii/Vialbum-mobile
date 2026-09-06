@@ -1,6 +1,9 @@
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { Image } from 'expo-image';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +11,7 @@ import {
 } from 'react-native';
 
 import type { Journey } from '@/features/journeys/types';
+import { prepareJourneyDetails } from '@/features/journeys/detailsCache';
 import { colors } from '@/theme/colors';
 import {
   shadows,
@@ -71,22 +75,31 @@ export function JourneyCard({
 }: {
   journey: Journey;
 }) {
+  const [isOpening, setIsOpening] = useState(false);
+
+  async function openJourney() {
+    if (isOpening) return;
+    setIsOpening(true);
+    try {
+      await prepareJourneyDetails(journey.id, journey);
+      router.push({ pathname: '/journey/[id]', params: { id: journey.id } });
+    } catch {
+      Alert.alert('Journey unavailable', 'This journey could not be opened. Please try again.');
+    } finally {
+      setIsOpening(false);
+    }
+  }
+
   return (
-    <Link
-      href={{
-        pathname: '/journey/[id]',
-        params: {
-          id: journey.id,
-        },
-      }}
-      asChild
-    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open ${journey.title}`}
+        accessibilityState={{ busy: isOpening, disabled: isOpening }}
+        disabled={isOpening}
+        onPress={() => void openJourney()}
         style={({ pressed }) => [
           styles.card,
-          pressed && styles.pressed,
+          (pressed || isOpening) && styles.pressed,
         ]}
       >
         <View style={styles.clip}>
@@ -123,9 +136,11 @@ export function JourneyCard({
               />
             </View>
           )}
+          {isOpening ? <View pointerEvents="none" style={styles.opening}>
+            <ActivityIndicator color={colors.onDark} />
+          </View> : null}
         </View>
       </Pressable>
-    </Link>
   );
 }
 
@@ -160,6 +175,18 @@ const styles = StyleSheet.create({
         scale: 0.99,
       },
     ],
+  },
+
+  opening: {
+    position: 'absolute',
+    right: 18,
+    bottom: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(17,17,13,0.38)',
   },
 
   image: {
