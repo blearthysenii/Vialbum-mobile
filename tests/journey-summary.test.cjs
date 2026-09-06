@@ -15,14 +15,12 @@ function load(source, requireValue = require) {
 
 const timeline = load(fs.readFileSync('src/features/timeline/groupTimeline.ts', 'utf8'));
 const summary = load(
-  fs.readFileSync('src/features/recap/summary.ts', 'utf8'),
+  fs.readFileSync('src/features/journeys/summary.ts', 'utf8'),
   (name) => name.includes('timeline/groupTimeline') ? timeline : require(name),
 );
 const {
-  buildRecapSections,
   deriveJourneySummary,
-  journeyStats,
-  selectJourneyHighlights,
+  journeyTimelineStats,
 } = summary;
 
 const journey = (values = {}) => ({
@@ -77,52 +75,18 @@ test('derives counts, places, mapped content, dates, and populated Day N range',
   );
 });
 
-test('empty journeys keep useful duration and omit meaningless zero stats', () => {
+test('empty journeys keep useful duration values', () => {
   const result = deriveJourneySummary(journey(), [], []);
   assert.equal(result.populatedDays, 0);
   assert.equal(result.earliestContentDate, null);
-  assert.deepEqual(Array.from(journeyStats(result), (item) => ({ ...item })), [
+});
+
+test('timeline stats always reserve four cards and preserve valid zero values', () => {
+  const empty = deriveJourneySummary(journey({ place_id: null }), [], []);
+  assert.deepEqual(Array.from(journeyTimelineStats(empty), (item) => ({ ...item })), [
     { label: 'Days', value: '7' },
-    { label: 'Place', value: '1' },
+    { label: 'Memories', value: '0' },
+    { label: 'Photos', value: '0' },
+    { label: 'Places', value: '0' },
   ]);
-});
-
-test('recap keeps every memory and limits each day to representative photos', () => {
-  const photos = Array.from({ length: 100 }, (_, index) =>
-    photo(`p${String(index).padStart(3, '0')}`, `2025-03-${String(index % 7 + 1).padStart(2, '0')}`, {
-      caption: index % 9 === 0 ? 'Captioned' : null,
-      memory_id: index % 11 === 0 ? 'memory' : null,
-    }));
-  const sections = buildRecapSections('2025-03-01', [memory('memory', '2025-03-01')], photos);
-  assert.equal(sections.length, 7);
-  assert.ok(sections.every((section) => section.data.filter((item) => item.type === 'photo').length <= 4));
-  assert.equal(sections[0].data[0].type, 'memory');
-});
-
-test('thirty populated days remain bounded with more than one hundred photos', () => {
-  const photos = Array.from({ length: 120 }, (_, index) =>
-    photo(
-      `long-${String(index).padStart(3, '0')}`,
-      `2025-03-${String(index % 30 + 1).padStart(2, '0')}`,
-    ));
-  const sections = buildRecapSections('2025-03-01', [], photos);
-  assert.equal(sections.length, 30);
-  assert.equal(sections.flatMap((section) => Array.from(section.data)).length, 120);
-});
-
-test('highlights choose cover, linked, captioned, and different days deterministically', () => {
-  const photos = [
-    photo('day-one', '2025-03-01'),
-    photo('linked', '2025-03-02', { memory_id: 'm1' }),
-    photo('captioned', '2025-03-03', { caption: 'A favorite' }),
-    photo('cover', '2025-03-04'),
-    photo('day-five', '2025-03-05'),
-    photo('day-six', '2025-03-06'),
-  ];
-  const sections = timeline.groupTimeline('2025-03-01', [], photos);
-  assert.deepEqual(
-    Array.from(selectJourneyHighlights(journey({ cover_media_id: 'cover' }), sections), (item) => item.id),
-    ['cover', 'linked', 'captioned', 'day-one', 'day-five'],
-  );
-  assert.equal(selectJourneyHighlights(journey(), sections.slice(0, 1)).length, 0);
 });
