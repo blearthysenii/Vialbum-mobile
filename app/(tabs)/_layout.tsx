@@ -3,6 +3,7 @@ import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import {
   type ComponentProps,
+  useCallback,
   useEffect,
   useRef,
 } from 'react';
@@ -13,6 +14,17 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
+import Reanimated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -20,9 +32,14 @@ import {
   useTabBarController,
 } from '@/features/navigation/TabBarScrollContext';
 
-type IconName = ComponentProps<typeof Ionicons>['name'];
+type IconName = ComponentProps<
+  typeof Ionicons
+>['name'];
+
 type BottomTabBarProps = Parameters<
-  NonNullable<ComponentProps<typeof Tabs>['tabBar']>
+  NonNullable<
+    ComponentProps<typeof Tabs>['tabBar']
+  >
 >[0];
 
 type TabName =
@@ -70,7 +87,9 @@ const tabs: Record<TabName, TabConfig> = {
   },
 };
 
-function isTabName(name: string): name is TabName {
+function isTabName(
+  name: string,
+): name is TabName {
   return name in tabs;
 }
 
@@ -80,6 +99,8 @@ type TabButtonProps = {
   focused: boolean;
   onPress: () => void;
   onLongPress: () => void;
+  onNavbarIconPressIn: () => void;
+  onNavbarIconPressOut: () => void;
   testID?: string;
 };
 
@@ -89,14 +110,14 @@ function TabButton({
   focused,
   onPress,
   onLongPress,
+  onNavbarIconPressIn,
+  onNavbarIconPressOut,
   testID,
 }: TabButtonProps) {
-  const pressScale = useRef(
-    new Animated.Value(1),
-  ).current;
-
   const iconScale = useRef(
-    new Animated.Value(focused ? 1 : 0.96),
+    new Animated.Value(
+      focused ? 1 : 0.96,
+    ),
   ).current;
 
   useEffect(() => {
@@ -109,51 +130,43 @@ function TabButton({
     }).start();
   }, [focused, iconScale]);
 
-  const handlePressIn = () => {
-    Animated.spring(pressScale, {
-      toValue: 0.91,
-      damping: 18,
-      stiffness: 420,
-      mass: 0.55,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(pressScale, {
-      toValue: 1,
-      damping: 15,
-      stiffness: 360,
-      mass: 0.55,
-      useNativeDriver: true,
-    }).start();
-  };
-
   const horizontalOffset =
     tabName === 'index'
-      ? 5
+      ? 7
       : tabName === 'profile'
-        ? -5
+        ? -7
         : 0;
 
   return (
     <Pressable
-      accessibilityLabel={tab.accessibilityLabel}
+      accessibilityLabel={
+        tab.accessibilityLabel
+      }
       accessibilityRole="tab"
-      accessibilityState={{ selected: focused }}
+      accessibilityState={{
+        selected: focused,
+      }}
       onLongPress={onLongPress}
       onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      onPressIn={
+        onNavbarIconPressIn
+      }
+      onPressOut={
+        onNavbarIconPressOut
+      }
       style={styles.segment}
       testID={testID}
     >
       <Animated.View
         style={{
           transform: [
-            { translateX: horizontalOffset },
-            { scale: pressScale },
-            { scale: iconScale },
+            {
+              translateX:
+                horizontalOffset,
+            },
+            {
+              scale: iconScale,
+            },
           ],
         }}
       >
@@ -180,154 +193,650 @@ function VialbumTabBar({
   descriptors,
   navigation,
 }: BottomTabBarProps) {
-  const insets = useSafeAreaInsets();
-  const { collapsed, expand } = useTabBarController();
+  const insets =
+    useSafeAreaInsets();
 
-  const { width: screenWidth } =
-    useWindowDimensions();
+  const {
+    collapsed,
+    expand,
+  } = useTabBarController();
 
-  const capsuleWidth = screenWidth - 40;
-  const tabCount = state.routes.length;
+  const {
+    width: screenWidth,
+  } = useWindowDimensions();
+
+  const navbarPressProgress =
+    useRef(
+      new Animated.Value(0),
+    ).current;
+
+  const navbarPressBrightness =
+    useRef(
+      new Animated.Value(0),
+    ).current;
+
+  const navbarPressStartedAt =
+    useRef(0);
+
+  const navbarPressStartedCollapsed =
+    useRef(false);
+
+  const navbarTouchMode =
+    useRef<
+      'background' | 'icon' | null
+    >(null);
+
+  const navbarReleaseTimer =
+    useRef<
+      ReturnType<typeof setTimeout> | null
+    >(null);
+
+  const clearNavbarReleaseTimer =
+    useCallback(() => {
+      if (
+        navbarReleaseTimer.current
+      ) {
+        clearTimeout(
+          navbarReleaseTimer.current,
+        );
+        navbarReleaseTimer.current =
+          null;
+      }
+    }, []);
+
+  const showNavbarBrightness =
+    useCallback(() => {
+      Animated.timing(
+        navbarPressBrightness,
+        {
+          toValue: 1,
+          duration: 35,
+          useNativeDriver: false,
+        },
+      ).start();
+    }, [
+      navbarPressBrightness,
+    ]);
+
+  const hideNavbarBrightness =
+    useCallback(() => {
+      Animated.timing(
+        navbarPressBrightness,
+        {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: false,
+        },
+      ).start();
+    }, [
+      navbarPressBrightness,
+    ]);
+
+  const springNavbarPress =
+    useCallback(
+      (toValue: number) => {
+        Animated.spring(
+          navbarPressProgress,
+          {
+            toValue,
+            damping: 20,
+            stiffness: 280,
+            mass: 0.62,
+            useNativeDriver: false,
+          },
+        ).start();
+      },
+      [
+        navbarPressProgress,
+      ],
+    );
+
+  const releaseNavbarPress =
+    useCallback(() => {
+      Animated.spring(
+        navbarPressProgress,
+        {
+          toValue: 0,
+          damping: 19,
+          stiffness: 250,
+          mass: 0.68,
+          useNativeDriver: false,
+        },
+      ).start();
+    }, [
+      navbarPressProgress,
+    ]);
+
+  const finishBrightnessAfterMinimumTap =
+    useCallback(() => {
+      const elapsed =
+        Date.now() -
+        navbarPressStartedAt.current;
+
+      const remaining =
+        Math.max(
+          0,
+          150 - elapsed,
+        );
+
+      const finish = () => {
+        hideNavbarBrightness();
+
+        navbarTouchMode.current =
+          null;
+
+        navbarPressStartedCollapsed.current =
+          false;
+
+        navbarReleaseTimer.current =
+          null;
+      };
+
+      if (remaining > 0) {
+        clearNavbarReleaseTimer();
+
+        navbarReleaseTimer.current =
+          setTimeout(
+            finish,
+            remaining,
+          );
+
+        return;
+      }
+
+      finish();
+    }, [
+      clearNavbarReleaseTimer,
+      hideNavbarBrightness,
+    ]);
+
+  const handleNavbarBackgroundPressIn =
+    useCallback(() => {
+      clearNavbarReleaseTimer();
+
+      navbarTouchMode.current =
+        'background';
+
+      navbarPressStartedAt.current =
+        Date.now();
+
+      navbarPressStartedCollapsed.current =
+        collapsed;
+
+      showNavbarBrightness();
+
+      springNavbarPress(
+        collapsed ? 0.22 : 1,
+      );
+    }, [
+      clearNavbarReleaseTimer,
+      collapsed,
+      showNavbarBrightness,
+      springNavbarPress,
+    ]);
+
+  const handleNavbarBackgroundPressOut =
+    useCallback(() => {
+      if (
+        navbarTouchMode.current ===
+        'icon'
+      ) {
+        return;
+      }
+
+      const startedCollapsed =
+        navbarPressStartedCollapsed.current;
+
+      releaseNavbarPress();
+
+      if (startedCollapsed) {
+        expand();
+      }
+
+      finishBrightnessAfterMinimumTap();
+    }, [
+      expand,
+      finishBrightnessAfterMinimumTap,
+      releaseNavbarPress,
+    ]);
+
+  const handleNavbarIconPressIn =
+    useCallback(() => {
+      clearNavbarReleaseTimer();
+
+      const startedCollapsed =
+        collapsed;
+
+      navbarTouchMode.current =
+        'icon';
+
+      navbarPressStartedAt.current =
+        Date.now();
+
+      navbarPressStartedCollapsed.current =
+        startedCollapsed;
+
+      showNavbarBrightness();
+
+      springNavbarPress(
+        startedCollapsed ? 0.22 : 1,
+      );
+    }, [
+      clearNavbarReleaseTimer,
+      collapsed,
+      showNavbarBrightness,
+      springNavbarPress,
+    ]);
+
+  const handleNavbarIconPressOut =
+    useCallback(() => {
+      const startedCollapsed =
+        navbarPressStartedCollapsed.current;
+
+      releaseNavbarPress();
+
+      if (startedCollapsed) {
+        expand();
+      }
+
+      finishBrightnessAfterMinimumTap();
+    }, [
+      expand,
+      finishBrightnessAfterMinimumTap,
+      releaseNavbarPress,
+    ]);
+
+  const capsuleWidth =
+    screenWidth - 40;
+
+  useEffect(() => {
+    return () => {
+      if (
+        navbarReleaseTimer.current
+      ) {
+        clearTimeout(
+          navbarReleaseTimer.current,
+        );
+      }
+    };
+  }, []);
+
+  const tabCount =
+    state.routes.length;
 
   const segmentWidth =
     capsuleWidth / tabCount;
 
-  const activeWidth = Math.min(
-    84,
-    segmentWidth * 1.16,
-  );
+  const edgeInset = 7;
 
-  const tabCenter =
-    state.index * segmentWidth +
-    segmentWidth / 2;
+  const activeWidth =
+    segmentWidth - edgeInset * 2 + 14;
 
-  const edgeInset = 4;
+  const getPositionForIndex =
+    useCallback(
+      (index: number) => {
+        const boundedIndex =
+          Math.max(
+            0,
+            Math.min(
+              tabCount - 1,
+              index,
+            ),
+          );
 
-  const rawActiveOffset =
-    tabCenter - activeWidth / 2;
+        const center =
+          boundedIndex *
+            segmentWidth +
+          segmentWidth / 2;
 
-  const activeOffset = Math.max(
-    edgeInset,
-    Math.min(
-      capsuleWidth -
-        activeWidth -
+        return Math.max(
+          edgeInset,
+          Math.min(
+            capsuleWidth -
+              activeWidth -
+              edgeInset,
+            center -
+              activeWidth / 2,
+          ),
+        );
+      },
+      [
+        activeWidth,
+        capsuleWidth,
         edgeInset,
-      rawActiveOffset,
-    ),
-  );
+        segmentWidth,
+        tabCount,
+      ],
+    );
 
-  const activePosition = useRef(
-    new Animated.Value(activeOffset),
-  ).current;
+  const activeOffset =
+    getPositionForIndex(
+      state.index,
+    );
 
-  const activeScaleX = useRef(
-    new Animated.Value(1),
-  ).current;
+  const activePosition =
+    useSharedValue(
+      activeOffset,
+    );
 
-  const activeScaleY = useRef(
-    new Animated.Value(1),
-  ).current;
+  const dragStartPosition =
+    useSharedValue(
+      activeOffset,
+    );
 
-  const previousIndex = useRef(
+  const isDragging =
+    useSharedValue(false);
+
+  const activeScaleX =
+    useRef(
+      new Animated.Value(1),
+    ).current;
+
+  const activeScaleY =
+    useRef(
+      new Animated.Value(1),
+    ).current;
+
+  const previousIndex =
+    useRef(state.index);
+
+  const collapseProgress =
+    useRef(
+      new Animated.Value(
+        collapsed ? 1 : 0,
+      ),
+    ).current;
+
+  const snapToIndex =
+    useCallback(
+      (index: number) => {
+        const boundedIndex =
+          Math.max(
+            0,
+            Math.min(
+              tabCount - 1,
+              index,
+            ),
+          );
+
+        const targetPosition =
+          getPositionForIndex(
+            boundedIndex,
+          );
+
+        activePosition.set(
+          withSpring(
+            targetPosition,
+            {
+              damping: 22,
+              stiffness: 280,
+              mass: 0.68,
+            },
+          ),
+        );
+
+        const route =
+          state.routes[
+            boundedIndex
+          ];
+
+        if (
+          !route ||
+          !isTabName(
+            route.name,
+          )
+        ) {
+          return;
+        }
+
+        if (
+          boundedIndex ===
+          state.index
+        ) {
+          return;
+        }
+
+        const event =
+          navigation.emit({
+            type: 'tabPress',
+            target:
+              route.key,
+            canPreventDefault:
+              true,
+          });
+
+        if (
+          !event.defaultPrevented
+        ) {
+          navigation.navigate(
+            route.name,
+            route.params,
+          );
+        }
+      },
+      [
+        activePosition,
+        getPositionForIndex,
+        navigation,
+        state.index,
+        state.routes,
+        tabCount,
+      ],
+    );
+
+  const activeAnimatedStyle =
+    useAnimatedStyle(
+      () => ({
+        transform: [
+          {
+            translateX:
+              activePosition.get(),
+          },
+        ],
+      }),
+    );
+
+  const activePanGesture =
+    Gesture.Pan()
+      .activateAfterLongPress(
+        80,
+      )
+      .activeOffsetX([
+        -2,
+        2,
+      ])
+      .failOffsetY([
+        -18,
+        18,
+      ])
+      .onBegin(() => {
+        dragStartPosition.set(
+          activePosition.get(),
+        );
+      })
+      .onStart(() => {
+        isDragging.set(true);
+
+        dragStartPosition.set(
+          activePosition.get(),
+        );
+
+        if (!collapsed) {
+          runOnJS(expand)();
+        }
+      })
+      .onUpdate(
+        (event) => {
+          const nextPosition =
+            dragStartPosition.get() +
+            event.translationX;
+
+          const minPosition =
+            edgeInset;
+
+          const maxPosition =
+            capsuleWidth -
+            activeWidth -
+            edgeInset;
+
+          activePosition.set(
+            Math.max(
+              minPosition,
+              Math.min(
+                maxPosition,
+                nextPosition,
+              ),
+            ),
+          );
+        },
+      )
+      .onEnd(
+        (event) => {
+          isDragging.set(false);
+
+          const projectedPosition =
+            activePosition.get() +
+            event.velocityX *
+              0.045;
+
+          const projectedCenter =
+            projectedPosition +
+            activeWidth / 2;
+
+          const nearestIndex =
+            Math.max(
+              0,
+              Math.min(
+                tabCount - 1,
+                Math.round(
+                  (
+                    projectedCenter -
+                    segmentWidth /
+                      2
+                  ) /
+                    segmentWidth,
+                ),
+              ),
+            );
+
+          runOnJS(
+            snapToIndex,
+          )(nearestIndex);
+        },
+      )
+      .onFinalize(() => {
+        isDragging.set(false);
+      });
+
+  useEffect(() => {
+    Animated.spring(
+      collapseProgress,
+      {
+        toValue:
+          collapsed ? 1 : 0,
+        damping: 22,
+        stiffness: 260,
+        mass: 0.72,
+        useNativeDriver: true,
+      },
+    ).start();
+  }, [
+    collapseProgress,
+    collapsed,
+  ]);
+
+  useEffect(() => {
+    if (!collapsed) {
+      expand();
+    }
+  }, [
+    collapsed,
+    expand,
     state.index,
-  );
-
-  const collapseProgress = useRef(
-    new Animated.Value(collapsed ? 1 : 0),
-  ).current;
-
-  useEffect(() => {
-    Animated.spring(collapseProgress, {
-      toValue: collapsed ? 1 : 0,
-      damping: 22,
-      stiffness: 260,
-      mass: 0.72,
-      useNativeDriver: true,
-    }).start();
-  }, [collapseProgress, collapsed]);
-
-  useEffect(() => {
-    expand();
-  }, [expand, state.index]);
+  ]);
 
   useEffect(() => {
     const changed =
-      previousIndex.current !== state.index;
+      previousIndex.current !==
+      state.index;
 
-    previousIndex.current = state.index;
+    previousIndex.current =
+      state.index;
 
     if (!changed) {
-      activePosition.setValue(
+      activePosition.set(
         activeOffset,
       );
 
       return;
     }
 
-    Animated.parallel([
-      Animated.spring(
-        activePosition,
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(
+          activeScaleX,
+          {
+            toValue: 1.03,
+            damping: 22,
+            stiffness: 330,
+            mass: 0.55,
+            useNativeDriver:
+              true,
+          },
+        ),
+
+        Animated.spring(
+          activeScaleY,
+          {
+            toValue: 0.975,
+            damping: 22,
+            stiffness: 330,
+            mass: 0.55,
+            useNativeDriver:
+              true,
+          },
+        ),
+      ]),
+
+      Animated.parallel([
+        Animated.spring(
+          activeScaleX,
+          {
+            toValue: 1,
+            damping: 18,
+            stiffness: 280,
+            mass: 0.65,
+            useNativeDriver:
+              true,
+          },
+        ),
+
+        Animated.spring(
+          activeScaleY,
+          {
+            toValue: 1,
+            damping: 18,
+            stiffness: 280,
+            mass: 0.65,
+            useNativeDriver:
+              true,
+          },
+        ),
+      ]),
+    ]).start();
+
+    activePosition.set(
+      withSpring(
+        activeOffset,
         {
-          toValue: activeOffset,
           damping: 23,
           stiffness: 250,
           mass: 0.72,
-          restDisplacementThreshold: 0.1,
-          restSpeedThreshold: 0.1,
-          useNativeDriver: true,
+          energyThreshold:
+            0.01,
         },
       ),
-
-      Animated.sequence([
-        Animated.parallel([
-          Animated.spring(
-            activeScaleX,
-            {
-              toValue: 1.09,
-              damping: 22,
-              stiffness: 330,
-              mass: 0.55,
-              useNativeDriver: true,
-            },
-          ),
-
-          Animated.spring(
-            activeScaleY,
-            {
-              toValue: 0.975,
-              damping: 22,
-              stiffness: 330,
-              mass: 0.55,
-              useNativeDriver: true,
-            },
-          ),
-        ]),
-
-        Animated.parallel([
-          Animated.spring(
-            activeScaleX,
-            {
-              toValue: 1,
-              damping: 18,
-              stiffness: 280,
-              mass: 0.65,
-              useNativeDriver: true,
-            },
-          ),
-
-          Animated.spring(
-            activeScaleY,
-            {
-              toValue: 1,
-              damping: 18,
-              stiffness: 280,
-              mass: 0.65,
-              useNativeDriver: true,
-            },
-          ),
-        ]),
-      ]),
-    ]).start();
+    );
   }, [
     activeOffset,
     activePosition,
@@ -338,170 +847,334 @@ function VialbumTabBar({
 
   return (
     <Animated.View
+      onTouchStart={
+        handleNavbarBackgroundPressIn
+      }
+      onTouchEnd={
+        handleNavbarBackgroundPressOut
+      }
+      onTouchCancel={
+        handleNavbarBackgroundPressOut
+      }
       style={[
         styles.shell,
         {
-          bottom: Math.max(
-            insets.bottom - 12,
-            8,
-          ),
+          bottom:
+            Math.max(
+              insets.bottom -
+                12,
+              8,
+            ),
         },
         {
           transform: [
             {
-              scaleX: collapseProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 0.88],
-              }),
+              scaleX:
+                collapseProgress.interpolate(
+                  {
+                    inputRange: [
+                      0,
+                      1,
+                    ],
+                    outputRange: [
+                      1,
+                      0.88,
+                    ],
+                  },
+                ),
             },
+
             {
-              scaleY: collapseProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 0.82],
-              }),
+              scaleY:
+                collapseProgress.interpolate(
+                  {
+                    inputRange: [
+                      0,
+                      1,
+                    ],
+                    outputRange: [
+                      1,
+                      0.82,
+                    ],
+                  },
+                ),
             },
+
             {
-              translateY: collapseProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 5],
-              }),
+              translateY:
+                collapseProgress.interpolate(
+                  {
+                    inputRange: [
+                      0,
+                      1,
+                    ],
+                    outputRange: [
+                      0,
+                      5,
+                    ],
+                  },
+                ),
             },
+
           ],
         },
       ]}
     >
-      <BlurView
-        intensity={34}
-        tint="systemUltraThinMaterialLight"
-        style={styles.bar}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.animatedBackground,
+          {
+            width:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [
+                    capsuleWidth,
+                    capsuleWidth + 10,
+                  ],
+                },
+              ),
+            height:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [62, 66],
+                },
+              ),
+            left:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [0, -5],
+                },
+              ),
+            top:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [0, -2],
+                },
+              ),
+          },
+        ]}
       >
-        <View
-          pointerEvents="none"
-          style={styles.surfaceTint}
-        />
+        <BlurView
+          intensity={34}
+          tint="systemUltraThinMaterialLight"
+          style={styles.backgroundBar}
+        >
+          <View
+            pointerEvents="none"
+            style={
+              styles.surfaceTint
+            }
+          />
 
-        <View
-          pointerEvents="none"
-          style={styles.bottomShade}
-        />
+          <View
+            pointerEvents="none"
+            style={
+              styles.bottomShade
+            }
+          />
 
-        <View
-          pointerEvents="none"
-          style={styles.glassHighlight}
-        />
+          <View
+            pointerEvents="none"
+            style={
+              styles.glassHighlight
+            }
+          />
 
-        <Animated.View
+
+        </BlurView>
+      </Animated.View>
+
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.navbarPressLightOverlay,
+          {
+            width:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [
+                    capsuleWidth,
+                    capsuleWidth + 10,
+                  ],
+                },
+              ),
+            height:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [62, 66],
+                },
+              ),
+            left:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [0, -5],
+                },
+              ),
+            top:
+              navbarPressProgress.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [0, -2],
+                },
+              ),
+            backgroundColor:
+              navbarPressBrightness.interpolate(
+                {
+                  inputRange: [0, 1],
+                  outputRange: [
+                    'rgba(255,255,255,0)',
+                    'rgba(255,255,255,0.92)',
+                  ],
+                },
+              ),
+          },
+        ]}
+      />
+
+      <View
+        style={styles.contentBar}
+      >
+
+        <Reanimated.View
           pointerEvents="none"
           style={[
-            styles.activeSegment,
+            styles.activeVisualArea,
             {
-              width: activeWidth,
-
-              transform: [
-                {
-                  translateX:
-                    activePosition,
-                },
-                {
-                  scaleX:
-                    activeScaleX,
-                },
-                {
-                  scaleY:
-                    activeScaleY,
-                },
-              ],
+              width:
+                activeWidth +
+                20,
             },
+            activeAnimatedStyle,
           ]}
         >
-          <BlurView
-            intensity={46}
-            tint="systemUltraThinMaterialLight"
-            style={
-              StyleSheet.absoluteFill
-            }
-          />
-
-          <View
+          <Animated.View
             pointerEvents="none"
-            style={styles.activeTint}
-          />
-
-          <View
-            pointerEvents="none"
-            style={
-              styles.activeGlassBorder
-            }
-          />
-
-          <View
-            pointerEvents="none"
-            style={
-              styles.activeTopReflection
-            }
-          />
-
-        </Animated.View>
+            style={[
+              styles.activeSegment,
+              {
+                left: 10,
+                width:
+                  activeWidth,
+                transform: [
+                  {
+                    scaleX:
+                      activeScaleX,
+                  },
+                  {
+                    scaleY:
+                      activeScaleY,
+                  },
+                ],
+              },
+            ]}
+          >
+            <View
+              pointerEvents="none"
+              style={
+                styles.activeTint
+              }
+            />
+          </Animated.View>
+        </Reanimated.View>
 
         {state.routes.map(
-          (route, index) => {
-            if (!isTabName(route.name)) {
+          (
+            route,
+            index,
+          ) => {
+            if (
+              !isTabName(
+                route.name,
+              )
+            ) {
               return null;
             }
 
             const focused =
-              state.index === index;
+              state.index ===
+              index;
 
             const tab =
-              tabs[route.name];
+              tabs[
+                route.name
+              ];
 
             const options =
               descriptors[
                 route.key
               ].options;
 
-            const onPress = () => {
-              expand();
+            const onPress =
+              () => {
+                if (!collapsed) {
+                  expand();
+                }
 
-              const event =
-                navigation.emit({
-                  type: 'tabPress',
-                  target:
-                    route.key,
-                  canPreventDefault:
-                    true,
-                });
+                const event =
+                  navigation.emit(
+                    {
+                      type: 'tabPress',
+                      target:
+                        route.key,
+                      canPreventDefault:
+                        true,
+                    },
+                  );
 
-              if (
-                !focused &&
-                !event.defaultPrevented
-              ) {
-                navigation.navigate(
-                  route.name,
-                  route.params,
-                );
-              }
-            };
+                if (
+                  !focused &&
+                  !event.defaultPrevented
+                ) {
+                  navigation.navigate(
+                    route.name,
+                    route.params,
+                  );
+                }
+              };
 
             const onLongPress =
               () => {
-                navigation.emit({
-                  type: 'tabLongPress',
-                  target:
-                    route.key,
-                });
+                navigation.emit(
+                  {
+                    type: 'tabLongPress',
+                    target:
+                      route.key,
+                  },
+                );
               };
 
             return (
               <TabButton
-                focused={focused}
-                key={route.key}
+                focused={
+                  focused
+                }
+                key={
+                  route.key
+                }
                 onLongPress={
                   onLongPress
                 }
-                onPress={onPress}
+                onPress={
+                  onPress
+                }
+                onNavbarIconPressIn={
+                  handleNavbarIconPressIn
+                }
+                onNavbarIconPressOut={
+                  handleNavbarIconPressOut
+                }
                 tab={tab}
-                tabName={route.name}
+                tabName={
+                  route.name
+                }
                 testID={
                   options.tabBarButtonTestID
                 }
@@ -509,217 +1182,336 @@ function VialbumTabBar({
             );
           },
         )}
-      </BlurView>
+
+        <GestureDetector
+          gesture={
+            activePanGesture
+          }
+        >
+          <Reanimated.View
+            accessibilityLabel="Drag to switch tabs"
+            accessibilityRole="adjustable"
+            style={[
+              styles.activeGestureArea,
+              {
+                width:
+                  activeWidth +
+                  20,
+              },
+              activeAnimatedStyle,
+            ]}
+          />
+        </GestureDetector>
+      </View>
     </Animated.View>
   );
 }
 
 export default function TabsLayout() {
   return (
-    <TabBarScrollProvider>
-      <Tabs
-      tabBar={(props) => (
-        <VialbumTabBar
-          {...props}
-        />
-      )}
-      screenOptions={{
-        headerShown: false,
-        tabBarHideOnKeyboard: true,
-      }}
+    <GestureHandlerRootView
+      style={styles.root}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-        }}
-      />
+      <TabBarScrollProvider>
+        <Tabs
+          tabBar={(props) => (
+            <VialbumTabBar
+              {...props}
+            />
+          )}
+          screenOptions={{
+            headerShown:
+              false,
+            tabBarHideOnKeyboard:
+              true,
+          }}
+        >
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Home',
+            }}
+          />
 
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-        }}
-      />
+          <Tabs.Screen
+            name="search"
+            options={{
+              title: 'Search',
+            }}
+          />
 
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: 'Create',
-        }}
-      />
+          <Tabs.Screen
+            name="create"
+            options={{
+              title: 'Create',
+            }}
+          />
 
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: 'Map',
-        }}
-      />
+          <Tabs.Screen
+            name="map"
+            options={{
+              title: 'Map',
+            }}
+          />
 
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-        }}
-      />
-      </Tabs>
-    </TabBarScrollProvider>
+          <Tabs.Screen
+            name="profile"
+            options={{
+              title: 'Profile',
+            }}
+          />
+        </Tabs>
+      </TabBarScrollProvider>
+    </GestureHandlerRootView>
   );
 }
 
-const styles = StyleSheet.create({
-  shell: {
-    borderCurve: 'continuous',
-    borderRadius: 31,
-
-    elevation: 5,
-
-    left: 20,
-    position: 'absolute',
-    right: 20,
-
-    shadowColor: '#000000',
-
-    shadowOffset: {
-      width: 0,
-      height: 4,
+const styles =
+  StyleSheet.create({
+    root: {
+      flex: 1,
     },
 
-    shadowOpacity: 0.15,
-    shadowRadius: 18,
+    shell: {
+      borderCurve:
+        'continuous',
 
-    zIndex: 20,
-  },
+      borderRadius: 31,
 
-  bar: {
-    alignItems: 'center',
+      elevation: 5,
 
-    backgroundColor:
-      'rgba(255, 255, 255, 0.025)',
+      left: 20,
 
-    borderColor:
-      'rgba(28, 28, 24, 0.13)',
+      position:
+        'absolute',
 
-    borderCurve:
-      'continuous',
+      right: 20,
 
-    borderRadius: 31,
+      shadowColor:
+        '#000000',
 
-    borderWidth:
-      StyleSheet.hairlineWidth,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
 
-    flexDirection: 'row',
+      shadowOpacity:
+        0.15,
 
-    height: 62,
+      shadowRadius: 18,
 
-    overflow: 'hidden',
-  },
+      zIndex: 20,
+    },
 
-  surfaceTint: {
-    position: 'absolute',
-    inset: 0,
+    animatedBackground: {
+      height: 62,
 
-    backgroundColor:
-      'rgba(255, 255, 255, 0.028)',
-  },
+      position:
+        'absolute',
+    },
 
-  bottomShade: {
-    backgroundColor:
-      'rgba(0, 0, 0, 0.007)',
+    backgroundBar: {
+      backgroundColor:
+        'rgba(255, 255, 255, 0.06)',
 
-    bottom: 0,
+      borderColor:
+        'rgba(28, 28, 24, 0.10)',
 
-    height: 13,
+      borderCurve:
+        'continuous',
 
-    left: 0,
+      borderRadius: 31,
 
-    position: 'absolute',
+      borderWidth:
+        StyleSheet.hairlineWidth,
 
-    right: 0,
-  },
+      height: '100%',
 
-  glassHighlight: {
-    position: 'absolute',
-    inset: 1,
+      overflow:
+        'hidden',
 
-    borderColor:
-      'rgba(255, 255, 255, 0.38)',
+      width: '100%',
+    },
 
-    borderCurve:
-      'continuous',
+    contentBar: {
+      alignItems:
+        'center',
 
-    borderRadius: 30,
+      borderCurve:
+        'continuous',
 
-    borderWidth:
-      StyleSheet.hairlineWidth,
-  },
+      borderRadius: 31,
 
-  activeSegment: {
-    borderCurve:
-      'continuous',
+      flexDirection:
+        'row',
 
-    borderRadius: 28,
+      height: 62,
 
-    bottom: 4,
+      overflow:
+        'visible',
 
-    overflow: 'hidden',
+      width: '100%',
+    },
 
-    position: 'absolute',
+    surfaceTint: {
+      position:
+        'absolute',
 
-    top: 4,
-  },
+      inset: 0,
 
-  activeTint: {
-    position: 'absolute',
-    inset: 0,
+      backgroundColor:
+        'rgba(255, 255, 255, 0.028)',
+    },
 
-    backgroundColor:
-      'rgba(145, 145, 145, 0.105)',
-  },
+    navbarPressLightOverlay: {
+      borderCurve:
+        'continuous',
 
-  activeGlassBorder: {
-    position: 'absolute',
-    inset: 0,
+      borderRadius: 31,
 
-    borderColor:
-      'rgba(255, 255, 255, 0.34)',
+      overflow: 'hidden',
 
-    borderCurve:
-      'continuous',
+      position: 'absolute',
 
-    borderRadius: 28,
+      zIndex: 1,
+    },
 
-    borderWidth:
-      StyleSheet.hairlineWidth,
-  },
+    bottomShade: {
+      backgroundColor:
+        'rgba(0, 0, 0, 0.007)',
 
-  activeTopReflection: {
-    backgroundColor:
-      'rgba(255, 255, 255, 0.36)',
+      bottom: 0,
 
-    height:
-      StyleSheet.hairlineWidth,
+      height: 13,
 
-    left: 14,
+      left: 0,
 
-    position: 'absolute',
+      position:
+        'absolute',
 
-    right: 14,
+      right: 0,
+    },
 
-    top: 1,
-  },
+    glassHighlight: {
+      position:
+        'absolute',
 
-  segment: {
-    alignItems: 'center',
+      inset: 1,
 
-    alignSelf: 'stretch',
+      borderColor:
+        'rgba(255, 255, 255, 0.38)',
 
-    flex: 1,
+      borderCurve:
+        'continuous',
 
-    justifyContent: 'center',
+      borderRadius: 30,
 
-    minHeight: 48,
+      borderWidth:
+        StyleSheet.hairlineWidth,
+    },
 
-    zIndex: 2,
-  },
-});
+    activeSegment: {
+      borderCurve:
+        'continuous',
+
+      borderRadius: 28,
+
+      bottom: 9,
+
+      overflow:
+        'hidden',
+
+      position:
+        'absolute',
+
+      top: 9,
+    },
+
+    activeVisualArea: {
+      bottom: -5,
+
+      left: -10,
+
+      position:
+        'absolute',
+
+      top: -5,
+
+      zIndex: 2,
+    },
+
+    activeGestureArea: {
+      bottom: -5,
+
+      left: -10,
+
+      position:
+        'absolute',
+
+      top: -5,
+
+      zIndex: 20,
+    },
+
+    activeTint: {
+      position:
+        'absolute',
+
+      inset: 0,
+
+      backgroundColor:
+        'rgba(232, 232, 234, 0.94)',
+    },
+
+    activeGlassBorder: {
+      position:
+        'absolute',
+
+      inset: 0,
+
+      borderColor:
+        'rgba(255, 255, 255, 0.34)',
+
+      borderCurve:
+        'continuous',
+
+      borderRadius: 28,
+
+      borderWidth:
+        StyleSheet.hairlineWidth,
+    },
+
+    activeTopReflection: {
+      backgroundColor:
+        'rgba(255, 255, 255, 0.36)',
+
+      height:
+        StyleSheet.hairlineWidth,
+
+      left: 14,
+
+      position:
+        'absolute',
+
+      right: 14,
+
+      top: 1,
+    },
+
+    segment: {
+      alignItems:
+        'center',
+
+      alignSelf:
+        'stretch',
+
+      flex: 1,
+
+      justifyContent:
+        'center',
+
+      minHeight: 48,
+
+      zIndex: 4,
+    },
+  });
