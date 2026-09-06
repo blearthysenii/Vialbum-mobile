@@ -1,6 +1,8 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,9 +13,6 @@ import { exportApi } from '@/features/exports/api';
 import { ExportProgress } from '@/features/exports/components/ExportProgress';
 import type { ExportState } from '@/features/exports/utils';
 import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
-import { DestructiveButton, SecondaryButton } from '@/components/ui/Button';
-import { ScreenHeader } from '@/components/ui/Headers';
-import { MetadataRow } from '@/components/ui/Metadata';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radii, typography } from '@/theme/tokens';
@@ -52,26 +51,42 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView {...tabBarScroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader eyebrow="YOUR SPACE" title="Profile" />
-        <View style={styles.profile}><View style={styles.avatar}><Text style={styles.initial}>{initials || 'V'}</Text></View>
-          <Text style={styles.title}>{user?.first_name} {user?.last_name}</Text><Text style={styles.copy}>A quiet home for the places and moments you want to keep.</Text>
+        <View style={styles.header}><Text style={styles.headerTitle}>Profile</Text></View>
+        <View style={styles.profile}>
+          <BlurView pointerEvents="none" intensity={40} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={styles.glassTint} />
+          <View style={styles.avatar}><Text style={styles.initial}>{initials || 'V'}</Text></View>
+          <View style={styles.identity}><Text style={styles.title}>{user?.first_name} {user?.last_name}</Text><Text numberOfLines={1} style={styles.email}>{user?.email ?? '—'}</Text></View>
         </View>
-        <View style={styles.details}><MetadataRow label="Email" value={user?.email ?? '—'} /></View>
-        <View style={styles.exportCard}>
-          <Text style={styles.exportTitle}>Your data belongs to you.</Text>
-          <Text style={styles.exportCopy}>Download a portable ZIP containing your account, journeys, memories, media details, and saved places. Photo files are available through individual journey exports.</Text>
-          <SecondaryButton accessibilityLabel="Export my Vialbum account data" disabled={exportState !== 'idle'} onPress={() => void exportAccount()}>Export My Data</SecondaryButton>
+
+        <Text style={styles.sectionLabel}>YOUR VIALBUM</Text>
+        <View style={styles.glassGroup}>
+          <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={styles.glassTint} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Export my Vialbum account data" disabled={exportState !== 'idle'} onPress={() => void exportAccount()} style={({ pressed }) => [styles.featureRow, pressed && styles.pressed]}>
+            <View style={styles.iconWell}><Ionicons name="arrow-down-circle-outline" size={21} color={colors.accent} /></View>
+            <View style={styles.rowCopy}><Text style={styles.rowTitle}>Export My Data</Text><Text style={styles.rowSubtitle}>Download your journeys, memories, and saved places.</Text></View>
+            {exportState !== 'idle' ? <ActivityIndicator size="small" color={colors.muted} /> : <Ionicons name="chevron-forward" size={17} color={colors.subtle} />}
+          </Pressable>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <MetadataRow label="Version" value={`${version}${build ? ` (${build})` : ''}`} />
-          {validPublicUrl(accountLinks.privacy) ? <Pressable accessibilityRole="link" accessibilityLabel="Open Vialbum privacy policy" onPress={() => void Linking.openURL(accountLinks.privacy!)} style={styles.link}><Text style={styles.linkText}>Privacy Policy</Text></Pressable> : null}
-          {validPublicUrl(accountLinks.terms) ? <Pressable accessibilityRole="link" accessibilityLabel="Open Vialbum terms" onPress={() => void Linking.openURL(accountLinks.terms!)} style={styles.link}><Text style={styles.linkText}>Terms</Text></Pressable> : null}
+
+        <Text style={styles.sectionLabel}>ABOUT</Text>
+        <View style={styles.glassGroup}>
+          <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={styles.glassTint} />
+          <View style={styles.settingRow}><View style={styles.iconWell}><Ionicons name="information-circle-outline" size={21} color={colors.muted} /></View><Text style={styles.settingTitle}>Version</Text><Text style={styles.settingValue}>{version}{build ? ` (${build})` : ''}</Text></View>
+          {validPublicUrl(accountLinks.privacy) ? <><View style={styles.divider} /><Pressable accessibilityRole="link" accessibilityLabel="Open Vialbum privacy policy" onPress={() => void Linking.openURL(accountLinks.privacy!)} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.iconWell}><Ionicons name="shield-checkmark-outline" size={20} color={colors.muted} /></View><Text style={styles.settingTitle}>Privacy Policy</Text><Ionicons name="chevron-forward" size={17} color={colors.subtle} /></Pressable></> : null}
+          {validPublicUrl(accountLinks.terms) ? <><View style={styles.divider} /><Pressable accessibilityRole="link" accessibilityLabel="Open Vialbum terms" onPress={() => void Linking.openURL(accountLinks.terms!)} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.iconWell}><Ionicons name="document-text-outline" size={20} color={colors.muted} /></View><Text style={styles.settingTitle}>Terms</Text><Ionicons name="chevron-forward" size={17} color={colors.subtle} /></Pressable></> : null}
           {!validPublicUrl(accountLinks.privacy) || !validPublicUrl(accountLinks.terms) ? <Text style={styles.pendingLinks}>Privacy and terms links will appear when configured for release.</Text> : null}
         </View>
-        <View style={styles.actions}>
-          <SecondaryButton accessibilityLabel="Sign out of Vialbum" disabled={exportState !== 'idle'} loading={signingOut} onPress={() => void logout()}>Sign Out</SecondaryButton>
-          <DestructiveButton accessibilityLabel="Open permanent account deletion" onPress={() => setShowDelete(true)}>Delete Account</DestructiveButton>
+
+        <Text style={styles.sectionLabel}>ACCOUNT</Text>
+        <View style={styles.glassGroup}>
+          <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={styles.glassTint} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Sign out of Vialbum" disabled={exportState !== 'idle' || signingOut} onPress={() => void logout()} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.iconWell}><Ionicons name="log-out-outline" size={20} color={colors.ink} /></View><Text style={styles.settingTitle}>Sign Out</Text>{signingOut ? <ActivityIndicator size="small" color={colors.muted} /> : null}</Pressable>
+          <View style={styles.divider} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Open permanent account deletion" onPress={() => setShowDelete(true)} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={[styles.iconWell, styles.dangerWell]}><Ionicons name="trash-outline" size={20} color={colors.danger} /></View><Text style={styles.dangerText}>Delete Account</Text></Pressable>
         </View>
       </ScrollView>
       <ExportProgress state={exportState} />
@@ -84,4 +99,14 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: colors.canvas }, content: { padding: spacing.lg, paddingBottom: spacing.xxl }, profile: { alignItems: 'center', marginTop: spacing.xxl }, avatar: { width: 88, height: 88, borderRadius: radii.round, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }, initial: { color: colors.canvas, fontSize: 27, fontWeight: '800' }, title: { ...typography.screenTitle, marginTop: spacing.lg, color: colors.ink }, copy: { ...typography.bodyLarge, maxWidth: 300, marginTop: spacing.md, textAlign: 'center', color: colors.muted }, details: { marginTop: spacing.xxl }, exportCard: { marginTop: spacing.xl, padding: spacing.lg, borderRadius: radii.lg, backgroundColor: colors.surfaceWarm, gap: spacing.md }, exportTitle: { ...typography.cardTitle, color: colors.ink }, exportCopy: { ...typography.body, color: colors.muted }, section: { marginTop: spacing.xl, gap: spacing.md }, sectionTitle: { ...typography.sectionTitle, color: colors.ink }, link: { minHeight: 44, justifyContent: 'center', borderBottomWidth: 1, borderBottomColor: colors.line }, linkText: { ...typography.button, color: colors.accent }, pendingLinks: { ...typography.metadata, color: colors.muted }, actions: { marginTop: spacing.xl, gap: spacing.md } });
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.canvas }, content: { paddingHorizontal: spacing.screen, paddingTop: 4, paddingBottom: 140 },
+  header: { minHeight: 54, justifyContent: 'center' }, headerTitle: { ...typography.screenTitle, color: colors.ink, fontSize: 32, lineHeight: 37 },
+  profile: { minHeight: 94, marginTop: 8, borderRadius: 26, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 15, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.28)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.62)' },
+  glassTint: { position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.10)' }, avatar: { width: 62, height: 62, borderRadius: radii.round, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }, initial: { color: colors.canvas, fontSize: 21, fontWeight: '800' }, identity: { flex: 1, minWidth: 0 }, title: { ...typography.cardTitle, color: colors.ink, fontSize: 20 }, email: { ...typography.body, color: colors.muted, marginTop: 3 },
+  sectionLabel: { ...typography.eyebrow, color: colors.muted, fontSize: 10, marginTop: 26, marginBottom: 8, paddingHorizontal: 5 },
+  glassGroup: { borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.28)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.58)' },
+  featureRow: { minHeight: 78, paddingHorizontal: 14, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', gap: 12 }, rowCopy: { flex: 1, minWidth: 0 }, rowTitle: { ...typography.button, color: colors.ink, fontSize: 16 }, rowSubtitle: { ...typography.metadata, color: colors.muted, fontWeight: '400', lineHeight: 17, marginTop: 3 },
+  settingRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, iconWell: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(118,118,128,0.10)' }, settingTitle: { ...typography.body, color: colors.ink, fontSize: 16, flex: 1 }, settingValue: { ...typography.metadata, color: colors.muted, fontWeight: '500' }, divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(113,111,104,0.18)', marginLeft: 60 }, pressed: { opacity: 0.58 },
+  pendingLinks: { ...typography.metadata, color: colors.muted, paddingHorizontal: 15, paddingVertical: 12 }, dangerWell: { backgroundColor: 'rgba(163,61,45,0.09)' }, dangerText: { ...typography.body, color: colors.danger, fontSize: 16, flex: 1 },
+});
