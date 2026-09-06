@@ -3,6 +3,7 @@ import { createContext, PropsWithChildren, useCallback, useContext, useEffect, u
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { journeyApi } from '@/features/journeys/api';
+import { clearPreparedJourneyDetails } from '@/features/journeys/detailsCache';
 import type { Journey, JourneyInput, JourneyUpdate } from '@/features/journeys/types';
 
 type JourneyContextValue = {
@@ -41,6 +42,7 @@ export function JourneyProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!user) {
+      clearPreparedJourneyDetails();
       setJourneys([]);
       setError(null);
       setIsLoading(false);
