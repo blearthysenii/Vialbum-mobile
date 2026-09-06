@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { ApiError } from '@/api/client';
-import { PrimaryButton, QuietButton } from '@/components/ui/Button';
+import { PrimaryButton, QuietButton, SecondaryButton } from '@/components/ui/Button';
 import { mediaApi } from '@/features/media/api';
 import { pickPhotos } from '@/features/media/picker';
 import type { JourneyMedia, SelectedPhoto } from '@/features/media/types';
@@ -19,9 +19,13 @@ type UploadItem = SelectedPhoto & {
 export function PhotoUploader({
   journeyId,
   onUploaded,
+  buttonStyle,
+  glassButton = false,
 }: {
   journeyId: string;
   onUploaded: (media: JourneyMedia) => void;
+  buttonStyle?: ViewStyle;
+  glassButton?: boolean;
 }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isPicking, setIsPicking] = useState(false);
@@ -58,8 +62,10 @@ export function PhotoUploader({
     }
   }
 
+  const UploadButton = glassButton ? SecondaryButton : PrimaryButton;
+
   return <View>
-    <PrimaryButton disabled={isBusy} loading={isPicking} onPress={() => void choose()}>Add Photos</PrimaryButton>
+    <UploadButton style={buttonStyle} disabled={isBusy} loading={isPicking} onPress={() => void choose()}>Add Photos</UploadButton>
     {items.length ? <View style={styles.queue}>{items.map((item) => (
       <View key={item.key} style={styles.row}>
         <View style={styles.rowCopy}>
