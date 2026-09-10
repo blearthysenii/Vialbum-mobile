@@ -11,6 +11,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -66,7 +67,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       unauthorizedHandler?.();
     }
     const detail = typeof payload?.detail === 'string' ? payload.detail : 'The request failed.';
-    throw new ApiError(detail, response.status);
+    const code = typeof payload?.code === 'string' ? payload.code : undefined;
+    throw new ApiError(detail, response.status, code);
   }
   return payload as T;
 }
