@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import MapView, { type MapPressEvent, type Region } from 'react-native-maps';
@@ -38,6 +38,7 @@ const mapStyle = [
 const worldRegion: MapRegion = { latitude: 20, longitude: 0, latitudeDelta: 120, longitudeDelta: 160 };
 
 export default function MapScreen() {
+  const { filter: requestedFilter } = useLocalSearchParams<{ filter?: string }>();
   const mapRef = useRef<MapView>(null);
   const hasFitted = useRef(false);
   const { width, height } = useWindowDimensions();
@@ -50,6 +51,10 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => {
+    if (requestedFilter === 'journey') setFilter('journey');
+  }, [requestedFilter]);
 
   const load = useCallback(async (active: () => boolean = () => true) => {
     setError(false);
