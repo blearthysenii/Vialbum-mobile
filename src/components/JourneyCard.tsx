@@ -12,6 +12,7 @@ import {
 
 import type { Journey } from '@/features/journeys/types';
 import { prepareJourneyDetails } from '@/features/journeys/detailsCache';
+import { resolveApiImageUrl } from '@/features/media/imageUrl';
 import { colors } from '@/theme/colors';
 import {
   shadows,
@@ -76,6 +77,8 @@ export function JourneyCard({
   journey: Journey;
 }) {
   const [isOpening, setIsOpening] = useState(false);
+  const coverUrl = resolveApiImageUrl(journey.cover_media_url, `journey.cover_media_url:${journey.id}`);
+  const [failedCoverUrl, setFailedCoverUrl] = useState<string | null>(null);
 
   async function openJourney() {
     if (isOpening) return;
@@ -103,15 +106,19 @@ export function JourneyCard({
         ]}
       >
         <View style={styles.clip}>
-          {journey.cover_media_url ? (
+          {coverUrl && failedCoverUrl !== coverUrl ? (
             <>
               <Image
-                source={journey.cover_media_url}
+                source={coverUrl}
                 contentFit="cover"
                 contentPosition="center"
                 cachePolicy="disk"
                 style={styles.image}
                 transition={200}
+                onError={(response) => {
+                  setFailedCoverUrl(coverUrl);
+                  if (__DEV__) console.warn('[Journey card cover] onError', { url: coverUrl, response });
+                }}
               />
 
               <View style={styles.content}>
