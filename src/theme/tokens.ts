@@ -1,4 +1,10 @@
-import type { TextStyle, ViewStyle } from 'react-native';
+import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+
+export const systemFont = Platform.select({
+  ios: 'System',
+  android: 'sans-serif',
+  default: 'System',
+});
 
 export const radii = { sm: 12, md: 16, lg: 22, xl: 28, round: 999 } as const;
 export const controlHeights = { compact: 44, standard: 54, prominent: 58 } as const;
