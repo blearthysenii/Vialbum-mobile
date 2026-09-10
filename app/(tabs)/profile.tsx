@@ -1,112 +1,353 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
-import Constants from 'expo-constants';
-import { router } from 'expo-router';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useAuth } from '@/features/auth/AuthProvider';
-import { accountLinks, validPublicUrl } from '@/features/account/config';
-import { DeleteAccountSheet } from '@/features/account/components/DeleteAccountSheet';
-import { exportApi } from '@/features/exports/api';
-import { ExportProgress } from '@/features/exports/components/ExportProgress';
-import type { ExportState } from '@/features/exports/utils';
+import { useJourneys } from '@/features/journeys/JourneyProvider';
+import { resolveApiImageUrl } from '@/features/media/imageUrl';
+import { mediaApi } from '@/features/media/api';
+import { memoryApi } from '@/features/memories/api';
 import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
-import { colors } from '@/theme/colors';
-import { spacing } from '@/theme/spacing';
-import { radii, typography } from '@/theme/tokens';
+import { JourneyAlbumCard, ProfileEmptyState, TravelStatsCard } from '@/features/profile/components/TravelProfileContent';
+import { shareProfile } from '@/features/profile/share';
+import { useProfileTheme } from '@/features/profile/theme';
+import type { ProfileJourney } from '@/features/profile/types';
+
+function uniquePlaceCount(groups: ProfileJourney[]) {
+  const keys = new Set<string>();
+  for (const journey of groups) {
+    if (journey.place) keys.add(journey.place.id ?? journey.place.display_name.trim().toLowerCase());
+    for (const memory of journey.memories) {
+      if (memory.place) keys.add(memory.place.id ?? memory.place.display_name.trim().toLowerCase());
+    }
+  }
+  return keys.size;
+}
+
+function albumDates(journey: ProfileJourney): string {
+  const format = (value: string) => {
+    if (!value) return '';
+    const date = new Date(value.slice(0, 10) + 'T12:00:00');
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+  const start = format(journey.start_date);
+  const end = format(journey.end_date);
+  return start && end && start !== end ? `${start} – ${end}` : start || end;
+}
+
+function Photo({ source, label, initials, color, backgroundColor, avatar = false, dark = false }: {
+  source: string | null; label: string; initials?: string; color: string; backgroundColor: string; avatar?: boolean; dark?: boolean;
+}) {
+  const uri = useMemo(() => resolveApiImageUrl(source, label), [label, source]);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(uri));
+  const showImage = Boolean(uri && failedUrl !== uri);
+  useEffect(() => {
+    setFailedUrl(null);
+    setLoading(Boolean(uri));
+  }, [uri]);
+  return (
+    <View style={[styles.photo, { backgroundColor }]}>
+      {avatar && !showImage ? (
+        <><LinearGradient colors={dark ? ['#52677F', '#303C4B'] : ['#A9BDD3', '#718AA5']} style={StyleSheet.absoluteFill} /><Text style={[styles.initials, { color }]}>{initials || '?'}</Text></>
+      ) : !avatar && !showImage ? <Ionicons name="albums-outline" size={38} color={color} /> : null}
+      {showImage ? (
+        <Image
+          source={uri}
+          contentFit="cover"
+          cachePolicy={avatar ? 'none' : 'disk'}
+          transition={240}
+          style={styles.photoImage}
+          onLoadStart={() => setLoading(true)}
+          onLoad={() => setLoading(false)}
+          onError={(response) => {
+            setLoading(false);
+            setFailedUrl(uri);
+            if (__DEV__) console.warn(`[Profile image] ${label} onError`, { url: uri, response });
+          }}
+        />
+      ) : null}
+      {loading && showImage ? <View style={[styles.photoLoading, { backgroundColor }]}><ActivityIndicator color={color} /></View> : null}
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
+  const { user, refreshUser } = useAuth();
+  const { journeys, isLoading: journeysLoading, error: journeyError, refresh } = useJourneys();
+  const theme = useProfileTheme();
+  const dark = useColorScheme() === 'dark';
   const tabBarScroll = useTabBarScroll();
-  const { user, signOut, deleteAccount } = useAuth();
-  const initials = `${user?.first_name[0] ?? ''}${user?.last_name[0] ?? ''}`.toUpperCase();
-  const [exportState, setExportState] = useState<ExportState>('idle');
-  const [showDelete, setShowDelete] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-  const version = Constants.expoConfig?.version ?? 'Unknown';
-  const build = Constants.nativeBuildVersion;
+  const [albums, setAlbums] = useState<ProfileJourney[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshProfileRef = useRef({ refresh, refreshUser });
+  const openingJourneyRef = useRef<string | null>(null);
+  refreshProfileRef.current = { refresh, refreshUser };
 
-  async function logout() {
-    if (signingOut) return;
-    setSigningOut(true);
-    try {
-      await signOut();
-      router.replace('/sign-in');
-    } finally {
-      setSigningOut(false);
-    }
-  }
+  useFocusEffect(useCallback(() => {
+    openingJourneyRef.current = null;
+    void Promise.all([refreshProfileRef.current.refreshUser(), refreshProfileRef.current.refresh()]);
+  }, []));
 
-  async function exportAccount() {
-    try {
-      await exportApi.account(setExportState);
-    } catch (caught) {
-      Alert.alert('Export unavailable', caught instanceof Error ? caught.message : 'Please try again.');
-    } finally {
-      setExportState('idle');
-    }
-  }
+  useEffect(() => {
+    if (!__DEV__) return;
+    console.debug('[Profile images] API response fields', {
+      profile_photo_url: user?.profile_photo_url ?? null,
+      first_journey_cover_media_url: journeys[0]?.cover_media_url ?? null,
+    });
+  }, [journeys, user?.profile_photo_url]);
+  const [reload, setReload] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [showAvatar, setShowAvatar] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  const surface = dark ? '#191C20' : '#F5F7F9';
+  const border = dark ? '#30353A' : '#E8EBEF';
+  const statDivider = dark ? 'rgba(84, 84, 88, 0.55)' : 'rgba(60, 60, 67, 0.18)';
+  const accent = '#0A84FF';
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => subscription.remove();
+  }, []);
+
+  const selectionHaptic = useCallback(() => {
+    void Haptics.selectionAsync().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    setDetailError(null);
+    // Covers stay visible even if a memory request fails.
+    setAlbums((current) => journeys.map((journey) => {
+      const existing = current.find((album) => album.id === journey.id);
+      return { ...journey, memories: existing?.memories ?? [], media: existing?.media ?? [] };
+    }));
+    if (!journeys.length) { setLoadingDetails(false); return; }
+    setLoadingDetails(true);
+    void Promise.all(journeys.map(async (journey) => {
+      const [memoriesResult, mediaResult] = await Promise.allSettled([
+        memoryApi.list(journey.id),
+        mediaApi.list(journey.id),
+      ]);
+      return {
+        album: {
+          ...journey,
+          memories: memoriesResult.status === 'fulfilled' ? memoriesResult.value : [],
+          media: mediaResult.status === 'fulfilled' ? mediaResult.value : [],
+        },
+        failed: memoriesResult.status === 'rejected' || mediaResult.status === 'rejected',
+      };
+    })).then((results) => {
+      if (!active) return;
+      setAlbums(results.map((result) => result.album));
+      if (results.some((result) => result.failed)) setDetailError('Some memories could not be loaded. Pull down to try again.');
+    }).finally(() => { if (active) setLoadingDetails(false); });
+    return () => { active = false; };
+  }, [journeys, reload]);
+
+  const countries = useMemo(() => new Set(journeys.map((journey) => journey.country.trim().toLowerCase()).filter(Boolean)).size, [journeys]);
+  const memories = useMemo(() => albums.reduce((sum, journey) => sum + journey.memories.length, 0), [albums]);
+  const places = useMemo(() => uniquePlaceCount(albums), [albums]);
+  const pullToRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await Promise.all([refresh(), refreshUser()]); setReload((value) => value + 1); }
+    catch { setDetailError('Your profile could not be refreshed. Please try again.'); }
+    finally { setRefreshing(false); }
+  }, [refresh, refreshUser]);
+
+  if (!user) return null;
+  const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
+  const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const bio = user.bio?.trim() ?? '';
+  const location = user.location?.trim() ?? '';
+  const busy = journeysLoading || loadingDetails;
+  const detailsUnavailable = busy || Boolean(detailError);
+  const visibleAlbums = showAll ? albums : albums.slice(0, 2);
+
+  const header = (
+    <View>
+      <View style={styles.topBar}>
+        <Text numberOfLines={1} style={[styles.username, { color: theme.muted }]}>@{user.username}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => router.push('/settings')}
+          style={({ pressed }) => [styles.circleButton, styles.settingsButton, { backgroundColor: surface, borderColor: border }, pressed && (reduceMotion ? styles.pressedOpacity : styles.pressed)]}>
+          <Ionicons name="settings-outline" size={23} color={theme.ink} />
+        </Pressable>
+      </View>
+
+      <View style={styles.identity}>
+        <Animated.View entering={reduceMotion ? FadeIn.duration(120) : FadeIn.duration(350)}>
+          <Pressable accessibilityRole="button" accessibilityLabel="View profile photo" onPress={() => setShowAvatar(true)}
+            style={({ pressed }) => [styles.avatar, { borderColor: dark ? 'rgba(255,255,255,0.16)' : 'rgba(60,60,67,0.14)' }, pressed && (reduceMotion ? styles.pressedOpacity : styles.pressed)]}>
+            <Photo source={user.profile_photo_url} label="user.profile_photo_url" initials={initials} color="#FFFFFF" backgroundColor={dark ? '#52677F' : '#90A6C0'} avatar dark={dark} />
+          </Pressable>
+        </Animated.View>
+        <Animated.View style={styles.identityCopy} entering={reduceMotion ? FadeIn.duration(120) : FadeInDown.delay(60).duration(310).withInitialValues({ opacity: 0, transform: [{ translateY: 6 }] })}>
+          <Text style={[styles.name, { color: theme.ink }]}>{name}</Text>
+          {bio ? <Text numberOfLines={3} style={[styles.bio, { color: theme.ink }]}>{bio}</Text> : null}
+          {location ? <Text style={[styles.location, { color: theme.muted }]}><Ionicons name="location-outline" size={14} /> {location}</Text> : null}
+        </Animated.View>
+        <Animated.View style={styles.actions} entering={reduceMotion ? FadeIn.duration(120) : FadeIn.delay(110).duration(300)}>
+          <Pressable accessibilityRole="button" onPress={() => { selectionHaptic(); router.push('/edit-profile'); }}
+            style={({ pressed }) => [styles.editButton, { backgroundColor: surface, borderColor: border }, pressed && (reduceMotion ? styles.pressedOpacity : styles.pressed)]}>
+            <Text style={[styles.editLabel, { color: theme.ink }]}>Edit Profile</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Share profile" onPress={() => {
+            selectionHaptic();
+            setShareError(null);
+            void Promise.resolve().then(() => shareProfile(user.username)).catch(() => setShareError('Your profile could not be shared. Please try again.'));
+          }} style={({ pressed }) => [styles.circleButton, { backgroundColor: surface, borderColor: border }, pressed && (reduceMotion ? styles.pressedOpacity : styles.pressed)]}>
+            <Ionicons name="share-outline" size={23} color={theme.ink} />
+          </Pressable>
+        </Animated.View>
+      </View>
+
+      <Animated.View style={styles.stats} entering={reduceMotion ? FadeIn.duration(120) : FadeInDown.delay(150).duration(320).withInitialValues({ opacity: 0, transform: [{ translateY: 4 }] })}>
+        <View pointerEvents="none" style={[styles.statDivider, styles.firstStatDivider, { backgroundColor: statDivider }]} />
+        <View pointerEvents="none" style={[styles.statDivider, styles.secondStatDivider, { backgroundColor: statDivider }]} />
+        {[
+          { value: journeysLoading ? '—' : journeys.length, label: journeys.length === 1 ? 'Journey' : 'Journeys' },
+          { value: journeysLoading ? '—' : countries, label: countries === 1 ? 'Country' : 'Countries' },
+          { value: detailsUnavailable ? '—' : places, label: places === 1 ? 'Place' : 'Places' },
+        ].map((stat) => (
+          <View key={stat.label} style={styles.stat}>
+            <Text style={[styles.statValue, { color: theme.ink }]}>{stat.value}</Text>
+            <Text style={[styles.statLabel, { color: theme.muted }]}>{stat.label}</Text>
+          </View>
+        ))}
+      </Animated.View>
+      {journeyError || detailError || shareError ? <Text accessibilityRole="alert" style={[styles.error, { color: theme.danger }]}>{journeyError || detailError || shareError}</Text> : null}
+
+      <Animated.View style={styles.sectionRow} entering={reduceMotion ? FadeIn.duration(120) : FadeInDown.delay(190).duration(320)}>
+        <Text style={[styles.sectionHeading, { color: theme.ink }]}>Your albums</Text>
+        {albums.length > 2 ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: showAll }} hitSlop={8}
+          onPress={() => { selectionHaptic(); setShowAll((value) => !value); }} style={({ pressed }) => [styles.textButton, pressed && (reduceMotion ? styles.pressedOpacity : styles.pressed)]}>
+          <Text style={[styles.link, { color: accent }]}>{showAll ? 'Show less' : 'See all'}</Text>
+        </Pressable> : null}
+      </Animated.View>
+    </View>
+  );
+
+  const footer = (
+    <View style={styles.footer}>
+      {busy ? <ActivityIndicator style={styles.loader} color={theme.muted} accessibilityLabel="Loading travel profile" /> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Travel summary" accessibilityState={{ expanded: showSummary }}
+        onPress={() => { selectionHaptic(); setShowSummary((value) => !value); }}
+        style={({ pressed }) => [styles.summary, { backgroundColor: theme.glass, borderColor: theme.border }, pressed && (reduceMotion ? styles.pressedOpacity : styles.summaryPressed)]}>
+        <BlurView pointerEvents="none" intensity={dark ? 34 : 24} tint={dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+        <Ionicons name="book-outline" size={25} color={theme.muted} />
+        <View style={styles.summaryText}>
+          <Text style={[styles.summaryTitle, { color: theme.ink }]}>Travel summary</Text>
+          <Text style={[styles.summaryCaption, { color: theme.muted }]}>{busy ? 'Loading memories…' : detailError ? 'Some details unavailable' : `${memories} ${memories === 1 ? 'memory' : 'memories'}`}</Text>
+        </View>
+        <Ionicons name={showSummary ? 'chevron-up' : 'chevron-forward'} size={19} color={theme.muted} />
+      </Pressable>
+      {showSummary && !detailsUnavailable ? <View style={styles.summaryDetails}><TravelStatsCard journeys={albums} totalMemories={memories} theme={theme} /></View> : null}
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView {...tabBarScroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}><Text style={styles.headerTitle}>Profile</Text></View>
-        <View style={styles.profile}>
-          <BlurView pointerEvents="none" intensity={40} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={styles.glassTint} />
-          <View style={styles.avatar}><Text style={styles.initial}>{initials || 'V'}</Text></View>
-          <View style={styles.identity}><Text style={styles.title}>{user?.first_name} {user?.last_name}</Text><Text numberOfLines={1} style={styles.email}>{user?.email ?? '—'}</Text></View>
-        </View>
-
-        <Text style={styles.sectionLabel}>YOUR VIALBUM</Text>
-        <View style={styles.glassGroup}>
-          <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={styles.glassTint} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Export my Vialbum account data" disabled={exportState !== 'idle'} onPress={() => void exportAccount()} style={({ pressed }) => [styles.featureRow, pressed && styles.pressed]}>
-            <View style={styles.iconWell}><Ionicons name="arrow-down-circle-outline" size={21} color={colors.accent} /></View>
-            <View style={styles.rowCopy}><Text style={styles.rowTitle}>Export My Data</Text><Text style={styles.rowSubtitle}>Download your journeys, memories, and saved places.</Text></View>
-            {exportState !== 'idle' ? <ActivityIndicator size="small" color={colors.muted} /> : <Ionicons name="chevron-forward" size={17} color={colors.subtle} />}
+    <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: theme.canvas }]}>
+      <FlatList
+        {...tabBarScroll}
+        data={visibleAlbums}
+        numColumns={2}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={header}
+        ListFooterComponent={footer}
+        columnWrapperStyle={styles.albumRow}
+        ListEmptyComponent={!busy && !journeyError && !detailError ? <ProfileEmptyState icon="albums-outline" title="Your journeys will appear here." action="Create your first journey" onAction={() => router.push('/journey/new')} theme={theme} /> : null}
+        renderItem={({ item }) => (
+          <JourneyAlbumCard
+            journey={item}
+            theme={theme}
+            date={albumDates(item)}
+            loading={loadingDetails}
+            reduceMotion={reduceMotion}
+            index={visibleAlbums.findIndex((album) => album.id === item.id)}
+            onPress={() => {
+              if (openingJourneyRef.current) return;
+              openingJourneyRef.current = item.id;
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+              router.push(`/journey/${item.id}`);
+            }}
+          />
+        )}
+        refreshing={refreshing}
+        onRefresh={() => void pullToRefresh()}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      />
+      <Modal visible={showAvatar} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowAvatar(false)}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close profile photo" onPress={() => setShowAvatar(false)} style={styles.previewBackdrop}>
+          <Pressable accessibilityRole="image" accessibilityLabel={`${name}'s profile photo`} onPress={(event) => event.stopPropagation()} style={styles.previewPhoto}>
+            <Photo source={user.profile_photo_url} label="user.profile_photo_url:preview" initials={initials} color="#FFFFFF" backgroundColor="transparent" avatar dark={dark} />
           </Pressable>
-        </View>
-
-        <Text style={styles.sectionLabel}>ABOUT</Text>
-        <View style={styles.glassGroup}>
-          <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={styles.glassTint} />
-          <View style={styles.settingRow}><View style={styles.iconWell}><Ionicons name="information-circle-outline" size={21} color={colors.muted} /></View><Text style={styles.settingTitle}>Version</Text><Text style={styles.settingValue}>{version}{build ? ` (${build})` : ''}</Text></View>
-          {validPublicUrl(accountLinks.privacy) ? <><View style={styles.divider} /><Pressable accessibilityRole="link" accessibilityLabel="Open Vialbum privacy policy" onPress={() => void Linking.openURL(accountLinks.privacy!)} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.iconWell}><Ionicons name="shield-checkmark-outline" size={20} color={colors.muted} /></View><Text style={styles.settingTitle}>Privacy Policy</Text><Ionicons name="chevron-forward" size={17} color={colors.subtle} /></Pressable></> : null}
-          {validPublicUrl(accountLinks.terms) ? <><View style={styles.divider} /><Pressable accessibilityRole="link" accessibilityLabel="Open Vialbum terms" onPress={() => void Linking.openURL(accountLinks.terms!)} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.iconWell}><Ionicons name="document-text-outline" size={20} color={colors.muted} /></View><Text style={styles.settingTitle}>Terms</Text><Ionicons name="chevron-forward" size={17} color={colors.subtle} /></Pressable></> : null}
-          {!validPublicUrl(accountLinks.privacy) || !validPublicUrl(accountLinks.terms) ? <Text style={styles.pendingLinks}>Privacy and terms links will appear when configured for release.</Text> : null}
-        </View>
-
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
-        <View style={styles.glassGroup}>
-          <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
-          <View pointerEvents="none" style={styles.glassTint} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Sign out of Vialbum" disabled={exportState !== 'idle' || signingOut} onPress={() => void logout()} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={styles.iconWell}><Ionicons name="log-out-outline" size={20} color={colors.ink} /></View><Text style={styles.settingTitle}>Sign Out</Text>{signingOut ? <ActivityIndicator size="small" color={colors.muted} /> : null}</Pressable>
-          <View style={styles.divider} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Open permanent account deletion" onPress={() => setShowDelete(true)} style={({ pressed }) => [styles.settingRow, pressed && styles.pressed]}><View style={[styles.iconWell, styles.dangerWell]}><Ionicons name="trash-outline" size={20} color={colors.danger} /></View><Text style={styles.dangerText}>Delete Account</Text></Pressable>
-        </View>
-      </ScrollView>
-      <ExportProgress state={exportState} />
-      <DeleteAccountSheet visible={showDelete} onClose={() => setShowDelete(false)} onDelete={async (password) => {
-        await deleteAccount(password);
-        setShowDelete(false);
-        router.replace('/sign-in');
-      }} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Close" hitSlop={10} onPress={() => setShowAvatar(false)} style={({ pressed }) => [styles.previewClose, pressed && styles.pressed]}>
+            <Ionicons name="close" size={23} color="#FFFFFF" />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.canvas }, content: { paddingHorizontal: spacing.screen, paddingTop: 4, paddingBottom: 140 },
-  header: { minHeight: 54, justifyContent: 'center' }, headerTitle: { ...typography.screenTitle, color: colors.ink, fontSize: 32, lineHeight: 37 },
-  profile: { minHeight: 94, marginTop: 8, borderRadius: 26, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 15, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.28)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.62)' },
-  glassTint: { position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.10)' }, avatar: { width: 62, height: 62, borderRadius: radii.round, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' }, initial: { color: colors.canvas, fontSize: 21, fontWeight: '800' }, identity: { flex: 1, minWidth: 0 }, title: { ...typography.cardTitle, color: colors.ink, fontSize: 20 }, email: { ...typography.body, color: colors.muted, marginTop: 3 },
-  sectionLabel: { ...typography.eyebrow, color: colors.muted, fontSize: 10, marginTop: 26, marginBottom: 8, paddingHorizontal: 5 },
-  glassGroup: { borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.28)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.58)' },
-  featureRow: { minHeight: 78, paddingHorizontal: 14, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', gap: 12 }, rowCopy: { flex: 1, minWidth: 0 }, rowTitle: { ...typography.button, color: colors.ink, fontSize: 16 }, rowSubtitle: { ...typography.metadata, color: colors.muted, fontWeight: '400', lineHeight: 17, marginTop: 3 },
-  settingRow: { minHeight: 56, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }, iconWell: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(118,118,128,0.10)' }, settingTitle: { ...typography.body, color: colors.ink, fontSize: 16, flex: 1 }, settingValue: { ...typography.metadata, color: colors.muted, fontWeight: '500' }, divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(113,111,104,0.18)', marginLeft: 60 }, pressed: { opacity: 0.58 },
-  pendingLinks: { ...typography.metadata, color: colors.muted, paddingHorizontal: 15, paddingVertical: 12 }, dangerWell: { backgroundColor: 'rgba(163,61,45,0.09)' }, dangerText: { ...typography.body, color: colors.danger, fontSize: 16, flex: 1 },
+  safe: { flex: 1 },
+  content: { paddingBottom: 150 },
+  topBar: { paddingHorizontal: 20, height: 56, alignItems: 'center', justifyContent: 'center' },
+  username: { maxWidth: '65%', fontFamily: 'System', fontSize: 17, lineHeight: 22, fontWeight: '600', letterSpacing: -0.3, textAlign: 'center' },
+  circleButton: { width: 46, height: 46, borderRadius: 23, borderWidth: StyleSheet.hairlineWidth, alignItems: 'center', justifyContent: 'center' },
+  settingsButton: { position: 'absolute', right: 20 },
+  pressed: { opacity: 0.65, transform: [{ scale: 0.97 }] },
+  pressedOpacity: { opacity: 0.65 },
+  identity: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 4 },
+  identityCopy: { alignItems: 'center' },
+  avatar: { width: 108, height: 108, borderRadius: 54, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', marginBottom: 12 },
+  photo: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  photoImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
+  photoLoading: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center' },
+  previewBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.86)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
+  previewPhoto: { width: '100%', maxWidth: 390, aspectRatio: 1, borderRadius: 28, overflow: 'hidden' },
+  previewClose: { position: 'absolute', top: 58, right: 22, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+  initials: { fontFamily: 'System', fontSize: 31, fontWeight: '600', letterSpacing: -1 },
+  name: { fontFamily: 'System', fontSize: 27, fontWeight: '700', letterSpacing: -0.8, textAlign: 'center' },
+  bio: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 10 },
+  location: { fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 5 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 15 },
+  editButton: { minHeight: 46, minWidth: 145, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 25, justifyContent: 'center', alignItems: 'center' },
+  editLabel: { fontSize: 15, fontWeight: '600' },
+  stats: { flexDirection: 'row', marginHorizontal: 27, marginTop: 18, marginBottom: 8, alignItems: 'center' },
+  statDivider: { position: 'absolute', top: '50%', width: 1, height: 44, marginTop: -22 },
+  firstStatDivider: { left: '33.333%' },
+  secondStatDivider: { left: '66.666%' },
+  stat: { flex: 1, alignItems: 'center', paddingHorizontal: 5 },
+  statValue: { fontSize: 23, fontWeight: '600', fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
+  statLabel: { fontSize: 13, marginTop: 4 },
+  error: { marginHorizontal: 20, marginTop: 14, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  sectionRow: { marginHorizontal: 20, marginTop: 25, marginBottom: 13, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionHeading: { fontSize: 23, fontWeight: '700', letterSpacing: -0.6 },
+  textButton: { minHeight: 44, justifyContent: 'center' },
+  link: { fontSize: 15, fontWeight: '600' },
+  albumRow: { paddingHorizontal: 20, gap: 16 },
+  footer: { paddingTop: 2 },
+  summary: { marginHorizontal: 20, minHeight: 64, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 18, paddingVertical: 13, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 13 },
+  summaryPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+  summaryText: { flex: 1 },
+  summaryTitle: { fontSize: 16, fontWeight: '600', letterSpacing: -0.3 },
+  summaryCaption: { fontSize: 12, marginTop: 3 },
+  summaryDetails: { marginTop: 12 },
+  loader: { marginVertical: 16 },
 });
