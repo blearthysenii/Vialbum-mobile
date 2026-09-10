@@ -10,6 +10,7 @@ export const colors = {
   placeholder: '#99958B',
   line: '#DFDCD3',
   accent: '#A65331',
+  link: '#2F95FF',
   danger: '#A33D2D',
   success: '#526B50',
   onDark: '#FFFFFF',
