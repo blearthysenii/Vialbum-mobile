@@ -1,11 +1,11 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radii, typography } from '@/theme/tokens';
 
-export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return <View accessibilityRole="alert" style={styles.error}><Text style={styles.errorText}>{message}</Text>{onRetry ? <Pressable accessibilityRole="button" onPress={onRetry}><Text style={styles.retry}>Try Again</Text></Pressable> : null}</View>;
+export function ErrorBanner({ message, onRetry, style, textStyle }: { message: string; onRetry?: () => void; style?: ViewStyle; textStyle?: TextStyle }) {
+  return <View accessibilityRole="alert" style={[styles.error, style]}><Text style={[styles.errorText, textStyle]}>{message}</Text>{onRetry ? <Pressable accessibilityRole="button" onPress={onRetry}><Text style={styles.retry}>Try Again</Text></Pressable> : null}</View>;
 }
 
 export function EmptyState({ title, message, actionLabel, onAction, mark = 'V' }: { title: string; message: string; actionLabel?: string; onAction?: () => void; mark?: string }) {
