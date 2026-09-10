@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import {
   type ComponentProps,
@@ -22,6 +23,7 @@ import {
 import Reanimated, {
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
@@ -114,6 +116,7 @@ function TabButton({
   onNavbarIconPressOut,
   testID,
 }: TabButtonProps) {
+  const reduceMotion = useReducedMotion();
   const iconScale = useRef(
     new Animated.Value(
       focused ? 1 : 0.96,
@@ -121,14 +124,19 @@ function TabButton({
   ).current;
 
   useEffect(() => {
-    Animated.spring(iconScale, {
-      toValue: focused ? 1 : 0.96,
-      damping: 18,
-      stiffness: 260,
-      mass: 0.7,
-      useNativeDriver: true,
-    }).start();
-  }, [focused, iconScale]);
+    if (reduceMotion) {
+      iconScale.setValue(focused ? 1 : 0.96);
+      return;
+    }
+    if (focused) {
+      Animated.sequence([
+        Animated.timing(iconScale, { toValue: 1.08, duration: 90, useNativeDriver: true }),
+        Animated.spring(iconScale, { toValue: 1, damping: 20, stiffness: 300, mass: 0.62, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.spring(iconScale, { toValue: 0.96, damping: 18, stiffness: 260, mass: 0.7, useNativeDriver: true }).start();
+    }
+  }, [focused, iconScale, reduceMotion]);
 
   const horizontalOffset =
     tabName === 'index'
@@ -1133,6 +1141,7 @@ function VialbumTabBar({
                   !focused &&
                   !event.defaultPrevented
                 ) {
+                  void Haptics.selectionAsync().catch(() => undefined);
                   navigation.navigate(
                     route.name,
                     route.params,
