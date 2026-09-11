@@ -249,7 +249,7 @@ export function AuthVortexMark({ authColors, isDark }: { authColors: AuthThemeCo
       <Animated.View style={[styles.globeLayer, globeAnimatedStyle]}>
         <Image
           resizeMode="contain"
-          source={require('../../../../assets/images/globe.png')}
+          source={require('../../../../assets/images/vialbum-globe.png')}
           style={styles.globeImage}
         />
       </Animated.View>
