@@ -14,6 +14,7 @@ import { ErrorBanner } from '@/components/ui/Feedback';
 import { searchApi } from '@/features/search/api';
 import { recentSearchStorage } from '@/features/search/storage';
 import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
+import { cachedImageSource } from '@/features/media/imageUrl';
 import type { SearchResponse, SearchResult } from '@/features/search/types';
 import {
   addRecentSearch, groupSearchResults, normalizeSearchQuery, resultMetadata,
@@ -78,7 +79,7 @@ function SearchResultRow({ item, index, reduceMotion }: { item: SearchResult; in
         <View pointerEvents="none" style={styles.resultTint} />
         <View style={[styles.thumbnail, item.type === 'memory' && styles.memoryThumbnail]}>
           {thumbnail ? (
-            <Image source={thumbnail} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={`search:${item.type}:${item.id}`} />
+            <Image source={cachedImageSource(thumbnail, `search:${item.type}:${item.id}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={`search:${item.type}:${item.id}`} />
           ) : <Ionicons name={resultIcons[item.type]} size={21} color={colors.accent} />}
         </View>
         <View style={styles.resultCopy}>

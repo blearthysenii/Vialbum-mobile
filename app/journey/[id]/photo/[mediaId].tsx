@@ -19,6 +19,7 @@ import { EmptyState, LoadingState } from '@/components/ui/Feedback';
 import { useJourneys } from '@/features/journeys/JourneyProvider';
 import { mediaApi } from '@/features/media/api';
 import { PhotoDetailsEditor } from '@/features/media/components/PhotoDetailsEditor';
+import { cachedImageSource } from '@/features/media/imageUrl';
 import type { JourneyMedia } from '@/features/media/types';
 import { memoryApi } from '@/features/memories/api';
 import type { Memory } from '@/features/memories/types';
@@ -266,7 +267,7 @@ export default function PhotoViewerScreen() {
     >
       <GestureDetector gesture={zoomGesture}>
         <Animated.View accessibilityLabel="Journey photograph. Pinch or double tap to zoom." style={[StyleSheet.absoluteFill, styles.photoStage, imageStyle]}>
-          <Image source={photo.url} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" transition={150} />
+          <Image source={cachedImageSource(photo.url, `photo-viewer:${photo.id}`)} style={StyleSheet.absoluteFill} contentFit="contain" cachePolicy="memory-disk" transition={150} />
         </Animated.View>
       </GestureDetector>
     </View>

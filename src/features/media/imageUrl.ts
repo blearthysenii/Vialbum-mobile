@@ -13,3 +13,10 @@ export function resolveApiImageUrl(value: string | null | undefined, label: stri
   if (__DEV__) console.debug(`[Image URL] ${label}`, { source: raw, resolved });
   return resolved;
 }
+
+export function cachedImageSource(uri: string, namespace: string) {
+  return {
+    uri,
+    cacheKey: `${namespace}:${uri.split(/[?#]/, 1)[0]}`,
+  };
+}

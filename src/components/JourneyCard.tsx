@@ -12,7 +12,7 @@ import {
 
 import type { Journey } from '@/features/journeys/types';
 import { prepareJourneyDetails } from '@/features/journeys/detailsCache';
-import { resolveApiImageUrl } from '@/features/media/imageUrl';
+import { cachedImageSource, resolveApiImageUrl } from '@/features/media/imageUrl';
 import { colors } from '@/theme/colors';
 import {
   shadows,
@@ -109,7 +109,7 @@ export function JourneyCard({
           {coverUrl && failedCoverUrl !== coverUrl ? (
             <>
               <Image
-                source={coverUrl}
+                source={cachedImageSource(coverUrl, `journey-cover:${journey.id}`)}
                 contentFit="cover"
                 contentPosition="center"
                 cachePolicy="disk"

@@ -16,6 +16,7 @@ import { ExportProgress } from '@/features/exports/components/ExportProgress';
 import { safeExportFilename, type ExportState } from '@/features/exports/utils';
 import { mediaApi } from '@/features/media/api';
 import { PhotoUploader } from '@/features/media/components/PhotoUploader';
+import { cachedImageSource } from '@/features/media/imageUrl';
 import type { JourneyMedia } from '@/features/media/types';
 import { memoryApi } from '@/features/memories/api';
 import { MemoryEditor } from '@/features/memories/components/MemoryEditor';
@@ -90,7 +91,7 @@ function AnimatedPhotoCard({ photo, onPress }: { photo: JourneyMedia; onPress: (
       style={timelineStyles.photo}
     >
       <Image
-        source={photo.thumbnail_url ?? photo.url}
+        source={cachedImageSource(photo.thumbnail_url ?? photo.url, `journey-photo:${photo.id}`)}
         style={timelineStyles.image}
         contentFit="cover"
         cachePolicy="disk"
@@ -486,7 +487,7 @@ export default function JourneyDetailsScreen() {
   return <View style={styles.safe}>
     {coverUrl ? <View pointerEvents="none" style={styles.timelineBackdrop}>
       <Image
-        source={coverUrl}
+        source={cachedImageSource(coverUrl, `timeline-background:${journey.id}`)}
         style={[StyleSheet.absoluteFill, styles.timelineBackdropImage]}
         contentFit="cover"
         cachePolicy="memory-disk"
@@ -529,7 +530,7 @@ export default function JourneyDetailsScreen() {
               ],
             },
           ]}>
-            <Image source={coverUrl} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" recyclingKey={journey.cover_media_id ?? journey.id} />
+            <Image source={cachedImageSource(coverUrl, `journey-hero:${journey.id}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" recyclingKey={journey.cover_media_id ?? journey.id} />
           </Animated.View> : <View style={styles.fallback}><View style={styles.sun} /></View>}
           <View style={styles.coverShade} />
           <SafeAreaView style={styles.coverSafe} edges={['top']}>

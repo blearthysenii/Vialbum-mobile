@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { MappedItem } from '@/features/map/utils';
+import { cachedImageSource } from '@/features/media/imageUrl';
 import { mapItemDayNumber, mapItemKey } from '@/features/map/utils';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -27,7 +28,7 @@ export function MapSelectionCard({ item, thumbnailUrl, onOpen }: ItemCardProps) 
     : location ?? item.subtitle;
   return <SafeAreaView style={styles.wrap} edges={['bottom']} pointerEvents="box-none">
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${item.type} ${item.title}`} style={styles.card} onPress={onOpen}>
-      <View style={styles.thumbnail}>{thumbnailUrl ? <Image source={thumbnailUrl} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={mapItemKey(item)} /> : <Text style={styles.placeholder}>V</Text>}</View>
+      <View style={styles.thumbnail}>{thumbnailUrl ? <Image source={cachedImageSource(thumbnailUrl, `map:${mapItemKey(item)}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={mapItemKey(item)} /> : <Text style={styles.placeholder}>V</Text>}</View>
       <View style={styles.body}>
         <Text style={styles.kind}>{item.type.toUpperCase()}</Text>
         <Text numberOfLines={1} style={styles.title}>{item.title}</Text>

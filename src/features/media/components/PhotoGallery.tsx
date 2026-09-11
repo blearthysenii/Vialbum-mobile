@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { JourneyMedia } from '@/features/media/types';
+import { cachedImageSource } from '@/features/media/imageUrl';
 import { colors } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
 import { radii, typography } from '@/theme/tokens';
@@ -19,7 +20,7 @@ export function PhotoGallery({ journeyId, media }: { journeyId: string; media: J
   );
   return <View style={styles.grid}>{media.map((photo) => (
     <Pressable accessibilityRole="button" accessibilityLabel={photo.caption ? `Open photo: ${photo.caption}` : 'Open journey photo'} key={photo.id} onPress={() => router.push(`/journey/${journeyId}/photo/${photo.id}` as never)}>
-      <Image source={photo.thumbnail_url ?? photo.url} style={styles.image} contentFit="cover" cachePolicy="disk" recyclingKey={photo.id} transition={180} />
+      <Image source={cachedImageSource(photo.thumbnail_url ?? photo.url, `photo-gallery:${photo.id}`)} style={styles.image} contentFit="cover" cachePolicy="disk" recyclingKey={photo.id} transition={180} />
     </Pressable>
   ))}</View>;
 }
