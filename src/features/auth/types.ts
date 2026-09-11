@@ -7,6 +7,7 @@ export type AuthUser = {
   bio: string | null;
   location: string | null;
   profile_photo_url: string | null;
+  profile_cover_url: string | null;
   created_at: string;
   updated_at: string;
 };

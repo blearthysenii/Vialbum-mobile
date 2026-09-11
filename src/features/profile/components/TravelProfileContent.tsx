@@ -4,11 +4,11 @@ import { Image } from 'expo-image';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMemo, useRef, useState } from 'react';
 import MapView, { Marker } from 'react-native-maps';
-import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 
 import type { ProfileJourney } from '@/features/profile/types';
 import type { ProfileTheme } from '@/features/profile/theme';
-import { resolveApiImageUrl } from '@/features/media/imageUrl';
+import { cachedImageSource, resolveApiImageUrl } from '@/features/media/imageUrl';
 
 const mapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#EEF1F3' }] },
@@ -71,13 +71,10 @@ export function VisitedPlacesMap({ journeys, countryCount, loading = false, them
 function AlbumLayer({ source, label, fallbackColor, theme, front = false }: { source: string | null; label: string; fallbackColor: string; theme: ProfileTheme; front?: boolean }) {
   const coverUrl = useMemo(() => resolveApiImageUrl(source, label), [label, source]);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(Boolean(coverUrl));
-  const [hasLoaded, setHasLoaded] = useState(false);
   const showCover = Boolean(coverUrl && failedUrl !== coverUrl);
   return <View style={[styles.layerSurface, { backgroundColor: fallbackColor, borderColor: theme.border }]}>
     {front && !showCover ? <Ionicons name="albums-outline" size={30} color={theme.muted} /> : null}
-    {showCover ? <Image source={coverUrl} style={styles.albumImage} contentFit="cover" cachePolicy="disk" recyclingKey={label} transition={240} onLoadStart={() => setImageLoading(true)} onLoad={() => { setImageLoading(false); setHasLoaded(true); }} onError={(response) => { setImageLoading(false); setFailedUrl(coverUrl); if (__DEV__) console.warn('[Profile album image] onError', { url: coverUrl, response }); }} /> : null}
-    {imageLoading && showCover && !hasLoaded ? <View style={[styles.imageLoading, { backgroundColor: theme.placeholder }]}><ActivityIndicator size="small" color={theme.muted} /></View> : null}
+    {showCover ? <Image source={cachedImageSource(coverUrl!, label)} style={styles.albumImage} contentFit="cover" cachePolicy="disk" recyclingKey={label} transition={220} onError={(response) => { setFailedUrl(coverUrl); if (__DEV__) console.warn('[Profile album image] onError', { url: coverUrl, response }); }} /> : null}
   </View>;
 }
 
@@ -92,13 +89,28 @@ export function JourneyAlbumCard({ journey, theme, date, loading = false, reduce
   const farStyle = useAnimatedStyle(() => ({ transform: [{ translateX: reduceMotion ? 0 : pressProgress.value * 3 }] }));
   const pressIn = () => { pressProgress.value = withTiming(1, { duration: 100, easing: Easing.out(Easing.cubic) }); };
   const pressOut = () => { pressProgress.value = withSpring(0, { damping: 20, stiffness: 280, mass: 0.65 }); };
-  return <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(Math.min(index, 1) * 60).duration(320).withInitialValues({ opacity: 0, transform: [{ translateY: 10 }] })} style={[styles.album, cardStyle]}>
+  const albumEntrance = () => {
+    'worklet';
+    const delay = 300 + Math.min(index, 6) * 40;
+    const timing = { duration: 330, easing: Easing.out(Easing.cubic) };
+    return {
+      initialValues: { opacity: 0, transform: [{ translateY: 10 }, { scale: 0.985 }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, timing)),
+        transform: [
+          { translateY: withDelay(delay, withTiming(0, timing)) },
+          { scale: withDelay(delay, withTiming(1, timing)) },
+        ],
+      },
+    };
+  };
+  return <Animated.View entering={reduceMotion ? FadeIn.duration(120) : albumEntrance} style={[styles.album, cardStyle]}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${journey.title}`} onPressIn={pressIn} onPressOut={pressOut} onPress={onPress} style={styles.albumPressable}>
     <View style={styles.albumStack}>
       <Animated.View style={[styles.farLayer, farStyle]}><AlbumLayer source={supporting[1] ?? null} label={`journey.album.third:${journey.id}`} fallbackColor={theme.dark ? '#292C31' : '#E8ECF0'} theme={theme} /></Animated.View>
       <Animated.View style={[styles.middleLayer, middleStyle]}><AlbumLayer source={supporting[0] ?? null} label={`journey.album.second:${journey.id}`} fallbackColor={theme.dark ? '#34383E' : '#F0F2F4'} theme={theme} /></Animated.View>
       <View style={styles.frontLayer}><AlbumLayer source={primary} label={`journey.album.cover:${journey.id}`} fallbackColor={theme.placeholder} theme={theme} front /></View>
-      {loading && journey.media.length === 0 && !journey.cover_media_url ? <View style={[styles.albumSkeleton, { backgroundColor: theme.placeholder }]}><ActivityIndicator color={theme.muted} /></View> : null}
+      {loading && journey.media.length === 0 && !journey.cover_media_url ? <Animated.View exiting={FadeOut.duration(210)} style={[styles.albumSkeleton, { backgroundColor: theme.placeholder }]} /> : null}
     </View>
     <Text numberOfLines={2} style={[styles.albumTitle, { color: theme.ink }]}>{journey.title || 'Untitled journey'}</Text>
     {date ? <Text numberOfLines={1} style={[styles.albumDate, { color: theme.muted }]}>{date}</Text> : null}
@@ -139,8 +151,7 @@ const styles = StyleSheet.create({
   frontLayer: { position: 'absolute', top: 0, right: 12, bottom: 10, left: 0, zIndex: 3 },
   layerSurface: { flex: 1, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', shadowColor: '#000000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
   albumImage: { width: '100%', height: '100%' },
-  imageLoading: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', opacity: 0.72 },
-  albumSkeleton: { position: 'absolute', top: 0, right: 14, bottom: 10, left: 0, zIndex: 4, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  albumSkeleton: { position: 'absolute', top: 0, right: 14, bottom: 10, left: 0, zIndex: 4, borderRadius: 22, opacity: 0.72 },
   albumTitle: { minHeight: 21, fontSize: 16, lineHeight: 20, fontWeight: '600', letterSpacing: -0.3, paddingRight: 5 },
   albumDate: { fontSize: 12, lineHeight: 17, marginTop: 3 },
   statsCard: { marginHorizontal: 20, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },

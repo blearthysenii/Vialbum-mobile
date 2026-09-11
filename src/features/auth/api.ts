@@ -16,6 +16,8 @@ export const authApi = {
   updateProfile: (body: ProfileUpdateInput) => apiRequest<AuthUser>('/users/me', { method: 'PATCH', body, authenticated: true }),
   uploadProfilePhoto: (file: { uri: string; name: string; type: string }, onProgress: (value: number) => void) => apiUpload<AuthUser>('/users/me/profile-photo', file, {}, onProgress),
   removeProfilePhoto: () => apiRequest<void>('/users/me/profile-photo', { method: 'DELETE', authenticated: true }),
+  uploadProfileCover: (file: { uri: string; name: string; type: string }, onProgress: (value: number) => void) => apiUpload<AuthUser>('/users/me/profile-cover', file, {}, onProgress),
+  removeProfileCover: () => apiRequest<void>('/users/me/profile-cover', { method: 'DELETE', authenticated: true }),
   deleteAccount: (password: string) => apiRequest<void>('/auth/account', {
     method: 'DELETE', authenticated: true, body: { confirmation: 'DELETE', password },
   }),
