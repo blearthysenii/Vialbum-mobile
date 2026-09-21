@@ -11,6 +11,7 @@ function exifDate(value: unknown): string | undefined {
 export async function pickPhotos(): Promise<SelectedPhoto[]> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
+    allowsEditing: false,
     allowsMultipleSelection: true,
     selectionLimit: 0,
     exif: true,

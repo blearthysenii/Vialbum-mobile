@@ -76,7 +76,7 @@ export function prepareMapMarkers(
   });
 }
 
-export function clusterExpansionRegion(cluster: MapClusterMarker, current: MapRegion): MapRegion | null {
+export function clusterExpansionRegion(cluster: Pick<MapClusterMarker, 'coordinate' | 'bounds'>, current: MapRegion): MapRegion | null {
   const latitudeSpan = cluster.bounds.maxLatitude - cluster.bounds.minLatitude;
   const longitudeSpan = cluster.bounds.maxLongitude - cluster.bounds.minLongitude;
   if (current.latitudeDelta <= 0.004 && current.longitudeDelta <= 0.004) return null;

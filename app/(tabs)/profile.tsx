@@ -2,13 +2,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, FlatList, Modal, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { AccessibilityInfo, FlatList, Modal, Pressable, RefreshControl, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Animated, { cancelAnimation, Easing, FadeIn, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import { useOwnFollowStats } from '@/features/follows/useOwnFollowStats';
+import { ProfileCover } from '@/features/profile/components/ProfileCover';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useJourneys } from '@/features/journeys/JourneyProvider';
@@ -16,10 +16,11 @@ import { cachedImageSource, resolveApiImageUrl } from '@/features/media/imageUrl
 import { mediaApi } from '@/features/media/api';
 import { memoryApi } from '@/features/memories/api';
 import { useTabBarScroll } from '@/features/navigation/TabBarScrollContext';
-import { JourneyAlbumCard, ProfileEmptyState } from '@/features/profile/components/TravelProfileContent';
+import { albumDates, JourneyAlbumCard, ProfileEmptyState } from '@/features/profile/components/TravelProfileContent';
 import { ProfileAvatarImage } from '@/features/profile/components/ProfileAvatarImage';
 import { shareProfile } from '@/features/profile/share';
 import { useProfileTheme } from '@/features/profile/theme';
+import { authDarkColors, authLightColors } from '@/features/auth/theme';
 import type { ProfileJourney } from '@/features/profile/types';
 
 const coverEntrance = () => {
@@ -61,28 +62,6 @@ const actionsEntrance = () => {
   };
 };
 
-function uniquePlaceCount(groups: ProfileJourney[]) {
-  const keys = new Set<string>();
-  for (const journey of groups) {
-    if (journey.place) keys.add(journey.place.id ?? journey.place.display_name.trim().toLowerCase());
-    for (const memory of journey.memories) {
-      if (memory.place) keys.add(memory.place.id ?? memory.place.display_name.trim().toLowerCase());
-    }
-  }
-  return keys.size;
-}
-
-function albumDates(journey: ProfileJourney): string {
-  const format = (value: string) => {
-    if (!value) return '';
-    const date = new Date(value.slice(0, 10) + 'T12:00:00');
-    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  };
-  const start = format(journey.start_date);
-  const end = format(journey.end_date);
-  return start && end && start !== end ? `${start} – ${end}` : start || end;
-}
-
 function Photo({ source, label, color, backgroundColor, avatar = false, fallbackIconSize = 54 }: {
   source: string | null; label: string; color: string; backgroundColor: string; avatar?: boolean; fallbackIconSize?: number;
 }) {
@@ -121,61 +100,14 @@ function AlbumPhoto({ source, label, color, backgroundColor }: {
   );
 }
 
-function ProfileCover({ source, canvas, dark, reduceMotion }: { source: string | null; canvas: string; dark: boolean; reduceMotion: boolean }) {
-  const uri = useMemo(() => resolveApiImageUrl(source, 'profile.cover'), [source]);
-  const [failedUrl, setFailedUrl] = useState<string | null>(null);
-  const showImage = Boolean(uri && failedUrl !== uri);
-  const imageProgress = useSharedValue(0);
-  const imageStyle = useAnimatedStyle(() => ({
-    opacity: imageProgress.value,
-    transform: [{ scale: reduceMotion ? 1 : 1.015 - imageProgress.value * 0.015 }],
-  }));
-
-  useEffect(() => {
-    setFailedUrl(null);
-  }, [uri]);
-
-  return (
-    <View style={styles.cover}>
-      <LinearGradient colors={dark ? ['#28333E', '#12171D'] : ['#AFC0CD', '#D9C8B5']} style={StyleSheet.absoluteFill} />
-      {showImage ? (
-        <Animated.View style={[styles.coverImage, imageStyle]}>
-          <Image
-            source={cachedImageSource(uri!, 'profile-cover')}
-            contentFit="cover"
-            cachePolicy="disk"
-            style={StyleSheet.absoluteFill}
-            onLoad={() => { imageProgress.set(withTiming(1, { duration: reduceMotion ? 120 : 350, easing: Easing.out(Easing.cubic) })); }}
-            onError={(response) => {
-              setFailedUrl(uri);
-              if (__DEV__) console.warn('[Profile cover] onError', { url: uri, response });
-            }}
-          />
-        </Animated.View>
-      ) : null}
-
-      {/* Broad, shallow crest measured from the profile reference. */}
-      <Svg
-        pointerEvents="none"
-        width="100%"
-        height={150}
-        viewBox="0 0 1000 150"
-        preserveAspectRatio="none"
-        style={styles.coverCurve}
-      >
-        <Path
-          d="M0 146 C180 120 330 96 500 96 C670 96 820 120 1000 146 L1000 150 L0 150 Z"
-          fill={canvas}
-        />
-      </Svg>
-    </View>
-  );
-}
 
 export default function ProfileScreen() {
   const { user, refreshUser } = useAuth();
+  const social = useOwnFollowStats();
+  const refreshSocial = social.refresh;
   const { journeys, isLoading: journeysLoading, error: journeyError, refresh } = useJourneys();
   const theme = useProfileTheme();
+  const profileBorder = (theme.dark ? authDarkColors : authLightColors).glassBorder;
   const dark = useColorScheme() === 'dark';
   const insets = useSafeAreaInsets();
   const tabBarScroll = useTabBarScroll();
@@ -183,13 +115,13 @@ export default function ProfileScreen() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const refreshProfileRef = useRef({ refresh, refreshUser });
+  const refreshInFlight = useRef(false);
+  const albumRequest = useRef<{ journeys: typeof journeys; promise: Promise<void> } | null>(null);
+  const albumRequestVersion = useRef(0);
   const openingJourneyRef = useRef<string | null>(null);
-  refreshProfileRef.current = { refresh, refreshUser };
 
   useFocusEffect(useCallback(() => {
     openingJourneyRef.current = null;
-    void Promise.all([refreshProfileRef.current.refreshUser(), refreshProfileRef.current.refresh()]);
   }, []));
 
   useEffect(() => {
@@ -199,11 +131,40 @@ export default function ProfileScreen() {
       first_journey_cover_media_url: journeys[0]?.cover_media_url ?? null,
     });
   }, [journeys, user?.profile_photo_url]);
-  const [reload, setReload] = useState(0);
   const [showAll, setShowAll] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [showAvatar, setShowAvatar] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const dividerReduceMotionAtMount = useReducedMotion();
+  const dividerReduceMotion = reduceMotion || dividerReduceMotionAtMount;
+  const dividerReveal = useSharedValue(dividerReduceMotion ? 1 : 0);
+  const dividerAnimatedStyle = useAnimatedStyle(() => {
+    const progress = dividerReduceMotion ? 1 : dividerReveal.value;
+    return {
+      opacity: progress,
+      transform: [{ scaleX: 0.92 + 0.08 * progress }, { translateY: 2 * (1 - progress) }],
+    };
+  });
+
+  const refreshHoldHeight = useSharedValue(0);
+  const refreshHoldAnimatedStyle = useAnimatedStyle(() => ({
+    height: refreshHoldHeight.value,
+    opacity: refreshHoldHeight.value / 56,
+  }));
+
+  useFocusEffect(useCallback(() => {
+    cancelAnimation(dividerReveal);
+    if (dividerReduceMotion) {
+      dividerReveal.set(1);
+    } else {
+      dividerReveal.set(0);
+      dividerReveal.set(withDelay(120, withTiming(1, {
+        duration: 450,
+        easing: Easing.out(Easing.cubic),
+      })));
+    }
+    return () => cancelAnimation(dividerReveal);
+  }, [dividerReduceMotion, dividerReveal]));
 
   const surface = dark ? '#191C20' : '#F5F7F9';
   const border = dark ? '#30353A' : '#E8EBEF';
@@ -216,21 +177,46 @@ export default function ProfileScreen() {
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    cancelAnimation(refreshHoldHeight);
+
+    if (refreshing) {
+      refreshHoldHeight.set(
+        reduceMotion
+          ? 56
+          : withTiming(56, {
+              duration: 180,
+              easing: Easing.out(Easing.cubic),
+            }),
+      );
+      return;
+    }
+
+    refreshHoldHeight.set(
+      reduceMotion
+        ? 0
+        : withTiming(0, {
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+          }),
+    );
+  }, [reduceMotion, refreshing, refreshHoldHeight]);
+
   const selectionHaptic = useCallback(() => {
     void Haptics.selectionAsync().catch(() => undefined);
   }, []);
 
-  useEffect(() => {
-    let active = true;
+  const loadAlbums = useCallback((nextJourneys: typeof journeys) => {
+    if (albumRequest.current?.journeys === nextJourneys) return albumRequest.current.promise;
+    const version = ++albumRequestVersion.current;
     setDetailError(null);
-    // Covers stay visible even if a memory request fails.
-    setAlbums((current) => journeys.map((journey) => {
+    // Keep cached album content visible while refreshed details arrive.
+    setAlbums((current) => nextJourneys.map((journey) => {
       const existing = current.find((album) => album.id === journey.id);
       return { ...journey, memories: existing?.memories ?? [], media: existing?.media ?? [] };
     }));
-    if (!journeys.length) { setLoadingDetails(false); return; }
-    setLoadingDetails(true);
-    void Promise.all(journeys.map(async (journey) => {
+    setLoadingDetails(nextJourneys.length > 0);
+    const promise = Promise.all(nextJourneys.map(async (journey) => {
       const [memoriesResult, mediaResult] = await Promise.allSettled([
         memoryApi.list(journey.id),
         mediaApi.list(journey.id),
@@ -244,21 +230,49 @@ export default function ProfileScreen() {
         failed: memoriesResult.status === 'rejected' || mediaResult.status === 'rejected',
       };
     })).then((results) => {
-      if (!active) return;
-      setAlbums(results.map((result) => result.album));
+      if (version !== albumRequestVersion.current) return;
+      setAlbums((current) => results.map((result) => {
+        const cached = current.find((album) => album.id === result.album.id);
+        return result.failed && cached
+          ? { ...result.album, memories: cached.memories, media: cached.media }
+          : result.album;
+      }));
       if (results.some((result) => result.failed)) setDetailError('Some memories could not be loaded. Pull down to try again.');
-    }).finally(() => { if (active) setLoadingDetails(false); });
-    return () => { active = false; };
-  }, [journeys, reload]);
+    }).finally(() => { if (version === albumRequestVersion.current) setLoadingDetails(false); });
+    albumRequest.current = { journeys: nextJourneys, promise };
+    return promise;
+  }, []);
 
-  const countries = useMemo(() => new Set(journeys.map((journey) => journey.country.trim().toLowerCase()).filter(Boolean)).size, [journeys]);
-  const places = useMemo(() => uniquePlaceCount(albums), [albums]);
+  useEffect(() => {
+    void loadAlbums(journeys);
+  }, [journeys, loadAlbums]);
+
+  useEffect(() => () => { albumRequestVersion.current += 1; albumRequest.current = null; }, []);
+
   const pullToRefresh = useCallback(async () => {
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
+    const refreshStartedAt = Date.now();
     setRefreshing(true);
-    try { await Promise.all([refresh(), refreshUser()]); setReload((value) => value + 1); }
-    catch { setDetailError('Your profile could not be refreshed. Please try again.'); }
-    finally { setRefreshing(false); }
-  }, [refresh, refreshUser]);
+    try {
+      const results = await Promise.allSettled([
+        refresh().then(async (refreshedJourneys) => {
+          if (refreshedJourneys) await loadAlbums(refreshedJourneys);
+          else if (albumRequest.current) await albumRequest.current.promise;
+        }),
+        refreshUser(),
+        refreshSocial(),
+      ]);
+      if (results.some((result) => result.status === 'rejected')) {
+        setDetailError('Your profile could not be refreshed. Please try again.');
+      }
+    } finally {
+      const remaining = 600 - (Date.now() - refreshStartedAt);
+      if (remaining > 0) await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+      refreshInFlight.current = false;
+      setRefreshing(false);
+    }
+  }, [loadAlbums, refresh, refreshUser, refreshSocial]);
 
   if (!user) return null;
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username;
@@ -324,18 +338,25 @@ export default function ProfileScreen() {
         <View pointerEvents="none" style={[styles.statDivider, styles.secondStatDivider, { backgroundColor: statDivider }]} />
         {[
           { value: journeys.length, loading: journeysLoading && journeys.length === 0, label: journeys.length === 1 ? 'Journey' : 'Journeys' },
-          { value: countries, loading: journeysLoading && journeys.length === 0, label: countries === 1 ? 'Country' : 'Countries' },
-          { value: places, loading: loadingDetails && albums.length === 0, label: places === 1 ? 'Place' : 'Places' },
+          { value: social.stats?.followers_count ?? '—', loading: social.loading, label: 'Followers', kind: 'followers' },
+          { value: social.stats?.following_count ?? '—', loading: social.loading, label: 'Following', kind: 'following' },
         ].map((stat) => (
-          <View key={stat.label} style={styles.stat}>
+          <Pressable key={stat.label} style={styles.stat} disabled={!stat.kind} accessibilityRole={stat.kind ? 'button' : undefined} onPress={() => router.push({ pathname: '/public-profile/[id]/connections', params: { id: user.id, kind: stat.kind } })}>
             {stat.loading ? <View style={[styles.statPlaceholder, { backgroundColor: theme.placeholder }]} /> : <Animated.Text entering={FadeIn.duration(reduceMotion ? 120 : 180)} style={[styles.statValue, { color: theme.ink }]}>{stat.value}</Animated.Text>}
             <Text style={[styles.statLabel, { color: theme.muted }]}>{stat.label}</Text>
-          </View>
+          </Pressable>
         ))}
       </Animated.View>
+      <Animated.View pointerEvents="none" style={[styles.contentDivider, { backgroundColor: profileBorder, transformOrigin: 'center' }, dividerAnimatedStyle]} />
+      {social.error ? <Pressable onPress={() => void refreshSocial()} accessibilityRole="button"><Text style={[styles.error, { color: theme.danger }]}>{social.error}</Text></Pressable> : null}
       {journeyError || detailError || shareError ? <Text accessibilityRole="alert" style={[styles.error, { color: theme.danger }]}>{journeyError || detailError || shareError}</Text> : null}
 
       <Animated.View style={styles.sectionRow} entering={reduceMotion ? FadeIn.duration(120) : FadeInDown.delay(260).duration(280).easing(Easing.out(Easing.cubic)).withInitialValues({ opacity: 0, transform: [{ translateY: 6 }] })}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Open Saved Journeys" hitSlop={8} onPress={() => router.push('/saved-journeys')} style={styles.textButton}>
+          <Text style={[styles.link, { color: theme.ink }]}><Ionicons name="bookmark-outline" size={17} /> Saved</Text>
+        </Pressable>
+      </Animated.View>
+      <Animated.View style={styles.sectionRow}>
         <Text style={[styles.sectionHeading, { color: theme.ink }]}>Your albums</Text>
         {albums.length > 2 ? <Pressable accessibilityRole="button" accessibilityState={{ expanded: showAll }} hitSlop={8}
           onPress={() => { selectionHaptic(); setShowAll((value) => !value); }} style={({ pressed }) => [styles.textButton, pressed && (reduceMotion ? styles.pressedOpacity : styles.pressed)]}>
@@ -352,9 +373,17 @@ export default function ProfileScreen() {
         data={visibleAlbums}
         numColumns={2}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={header}
+        ListHeaderComponent={
+          <View>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.refreshHold, refreshHoldAnimatedStyle]}
+            />
+            {header}
+          </View>
+        }
         columnWrapperStyle={styles.albumRow}
-        ListEmptyComponent={!busy && !journeyError && !detailError ? <ProfileEmptyState icon="albums-outline" title="Your journeys will appear here." action="Create your first journey" onAction={() => router.push('/journey/new')} theme={theme} /> : null}
+        ListEmptyComponent={!busy && !journeyError && !detailError ? <ProfileEmptyState borderColor={profileBorder} icon="albums-outline" title="Your journeys will appear here." action="Create your first journey" onAction={() => router.push('/journey/new')} theme={theme} /> : null}
         renderItem={({ item }) => (
           <JourneyAlbumCard
             journey={item}
@@ -367,12 +396,21 @@ export default function ProfileScreen() {
               if (openingJourneyRef.current) return;
               openingJourneyRef.current = item.id;
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-              router.push(`/journey/${item.id}`);
+              router.push({ pathname: '/post/[id]', params: { id: item.id, scope: 'own' } });
             }}
           />
         )}
-        refreshing={refreshing}
-        onRefresh={() => void pullToRefresh()}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            progressViewOffset={insets.top + 8}
+            refreshing={refreshing}
+            onRefresh={() => void pullToRefresh()}
+            tintColor={theme.muted}
+            colors={[theme.muted]}
+            progressBackgroundColor={theme.canvas}
+          />
+        }
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       />
@@ -393,6 +431,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { paddingBottom: 150 },
+  refreshHold: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   profileHero: { height: 260 },
   coverEntrance: { ...StyleSheet.absoluteFill },
   cover: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
@@ -428,6 +467,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 23, fontWeight: '600', fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
   statPlaceholder: { width: 18, height: 5, borderRadius: 3, marginVertical: 11 },
   statLabel: { fontSize: 13, marginTop: 4 },
+  contentDivider: { height: 1, marginHorizontal: 20, marginTop: 8 },
   error: { marginHorizontal: 20, marginTop: 14, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   sectionRow: { marginHorizontal: 20, marginTop: 28, marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionHeading: { fontSize: 23, fontWeight: '700', letterSpacing: -0.6 },

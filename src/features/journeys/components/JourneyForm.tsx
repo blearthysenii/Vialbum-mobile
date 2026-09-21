@@ -2,6 +2,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { JourneyVisibilityField } from '@/features/journeys/components/JourneyVisibilityField';
 import { JourneyLocationPicker } from '@/features/journeys/components/JourneyLocationPicker';
 import {
   FlatList,
@@ -269,7 +270,7 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
   const scrollOffset = useRef(0);
   const keyboardTop = useRef(Number.POSITIVE_INFINITY);
   const descriptionFocused = useRef(false);
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState<JourneyFormValues>({ ...initialValues, visibility: initialValues.visibility ?? 'private' });
   const [activeDate, setActiveDate] = useState<DateField | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -606,6 +607,7 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
                 />
               </View>
             </Animated.View>
+            <JourneyVisibilityField value={values.visibility ?? 'private'} onChange={(visibility) => setValues((current) => ({ ...current, visibility }))} />
           </View>
 
           {error ? (

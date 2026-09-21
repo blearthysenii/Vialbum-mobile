@@ -36,8 +36,8 @@ function flagEmoji(countryCode: string | null | undefined) {
   return code.split('').map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join('');
 }
 
-export function ProfileEmptyState({ icon, title, action, onAction, theme }: { icon: keyof typeof Ionicons.glyphMap; title: string; action?: string; onAction?: () => void; theme: ProfileTheme }) {
-  return <View style={[styles.empty, { backgroundColor: theme.glass, borderColor: theme.border }]}><BlurView pointerEvents="none" intensity={theme.dark ? 34 : 24} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /><Ionicons name={icon} size={24} color={theme.subtle} /><Text style={[styles.emptyText, { color: theme.muted }]}>{title}</Text>{action && onAction ? <Pressable onPress={onAction} style={({ pressed }) => pressed && styles.pressed}><Text style={[styles.emptyAction, { color: theme.accent }]}>{action}</Text></Pressable> : null}</View>;
+export function ProfileEmptyState({ icon, title, action, onAction, theme, borderColor = theme.border }: { icon: keyof typeof Ionicons.glyphMap; title: string; action?: string; onAction?: () => void; theme: ProfileTheme; borderColor?: string }) {
+  return <View style={[styles.empty, { backgroundColor: theme.glass, borderColor }]}><BlurView pointerEvents="none" intensity={theme.dark ? 34 : 24} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /><Ionicons name={icon} size={24} color={theme.subtle} /><Text style={[styles.emptyText, { color: theme.muted }]}>{title}</Text>{action && onAction ? <Pressable onPress={onAction} style={({ pressed }) => pressed && styles.pressed}><Text style={[styles.emptyAction, { color: theme.accent }]}>{action}</Text></Pressable> : null}</View>;
 }
 
 export function VisitedPlacesMap({ journeys, countryCount, loading = false, theme, onPress, onCreate }: { journeys: ProfileJourney[]; countryCount: number; loading?: boolean; theme: ProfileTheme; onPress: () => void; onCreate: () => void }) {
@@ -78,7 +78,18 @@ function AlbumLayer({ source, label, fallbackColor, theme, front = false }: { so
   </View>;
 }
 
-export function JourneyAlbumCard({ journey, theme, date, loading = false, reduceMotion = false, index = 0, onPress }: { journey: ProfileJourney; theme: ProfileTheme; date: string; loading?: boolean; reduceMotion?: boolean; index?: number; onPress: () => void }) {
+export function albumDates(journey: Pick<ProfileJourney, 'start_date' | 'end_date'>): string {
+  const format = (value: string) => {
+    if (!value) return '';
+    const date = new Date(value.slice(0, 10) + 'T12:00:00');
+    return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+  const start = format(journey.start_date);
+  const end = format(journey.end_date);
+  return start && end && start !== end ? `${start} – ${end}` : start || end;
+}
+
+export function JourneyAlbumCard({ journey, theme, date, loading = false, reduceMotion = false, index = 0, fullWidth = false, onPress }: { journey: ProfileJourney; theme: ProfileTheme; date: string; loading?: boolean; reduceMotion?: boolean; index?: number; fullWidth?: boolean; onPress: () => void }) {
   const photoMedia = journey.media.filter((item) => item.type === 'photo');
   const photos = photoMedia.map((item) => item.thumbnail_url ?? item.url);
   const primary = journey.cover_media_url ?? photos[0] ?? null;
@@ -104,7 +115,7 @@ export function JourneyAlbumCard({ journey, theme, date, loading = false, reduce
       },
     };
   };
-  return <Animated.View entering={reduceMotion ? FadeIn.duration(120) : albumEntrance} style={[styles.album, cardStyle]}>
+  return <Animated.View entering={reduceMotion ? FadeIn.duration(120) : albumEntrance} style={[styles.album, fullWidth && { maxWidth: '100%' }, cardStyle]}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${journey.title}`} onPressIn={pressIn} onPressOut={pressOut} onPress={onPress} style={styles.albumPressable}>
     <View style={styles.albumStack}>
       <Animated.View style={[styles.farLayer, farStyle]}><AlbumLayer source={supporting[1] ?? null} label={`journey.album.third:${journey.id}`} fallbackColor={theme.dark ? '#292C31' : '#E8ECF0'} theme={theme} /></Animated.View>

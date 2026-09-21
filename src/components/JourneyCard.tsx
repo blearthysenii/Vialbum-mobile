@@ -85,7 +85,7 @@ export function JourneyCard({
     setIsOpening(true);
     try {
       await prepareJourneyDetails(journey.id, journey);
-      router.push({ pathname: '/journey/[id]', params: { id: journey.id } });
+      router.push({ pathname: '/post/[id]', params: { id: journey.id, scope: 'own' } });
     } catch {
       Alert.alert('Journey unavailable', 'This journey could not be opened. Please try again.');
     } finally {

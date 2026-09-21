@@ -7,7 +7,7 @@ export default function CreateTabScreen() {
     <NewJourneyForm
       embedded
       onCreated={(id) =>
-        router.push({ pathname: '/journey/[id]', params: { id } })
+        router.push({ pathname: '/post/[id]', params: { id, scope: 'own' } })
       }
     />
   );

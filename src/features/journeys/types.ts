@@ -2,6 +2,7 @@ import type { Place, PlaceSelection } from '@/features/places/types';
 
 export type Journey = {
   id: string;
+  visibility: 'private' | 'public';
   title: string;
   destination: string;
   country: string;
@@ -21,6 +22,6 @@ export type Journey = {
 export type JourneyInput = Pick<
   Journey,
   'title' | 'destination' | 'country' | 'start_date' | 'end_date' | 'description' | 'latitude' | 'longitude'
-> & { cover_media_url?: string | null; place?: PlaceSelection | null };
+> & { visibility?: Journey['visibility']; cover_media_url?: string | null; place?: PlaceSelection | null };
 
 export type JourneyUpdate = Partial<JourneyInput>;

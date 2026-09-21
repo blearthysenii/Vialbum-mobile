@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -40,7 +42,9 @@ export default function SignInScreen() {
   const { isDark, colors: authColors } = useAuthTheme();
   const params = useLocalSearchParams<{ email?: string; identifier?: string }>();
   const styles = useMemo(() => createStyles(authColors, isDark), [authColors, isDark]);
-  const { signIn } = useAuth();
+  const { signIn, isRestoring, savedAccounts, savedAccountsError, reloadSavedAccounts, quickSignIn, removeSavedAccount } = useAuth();
+  const [showForm, setShowForm] = useState(Boolean(params.identifier ?? params.email));
+  const [accountBusy, setAccountBusy] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
   const passwordRef = useRef<TextInput>(null);
   const accountCheckId = useRef(0);
@@ -182,6 +186,41 @@ export default function SignInScreen() {
     }
   }
 
+  function selectPassword(email: string) {
+    updateIdentifier(email);
+    setPassword('');
+    setIsPasswordVisible(false);
+    setShowForm(true);
+    setStep('password');
+  }
+
+  async function openAccount(id: string, email: string) {
+    if (accountBusy) return;
+    setAccountBusy(id);
+    setError(null);
+    try {
+      if (await quickSignIn(id)) router.replace('/');
+      else {
+        selectPassword(email);
+        setError('Please enter your password to sign in.');
+      }
+    } catch {
+      setError('Unable to sign in. Check your connection or use your password.');
+    } finally { setAccountBusy(null); }
+  }
+
+  function confirmRemove(id: string) {
+    Alert.alert('Remove account from this device?', 'This does not delete your Vialbum account.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => {
+        setAccountBusy(id);
+        setError(null);
+        void removeSavedAccount(id).catch(() => setError('Unable to remove this account. Please try again.'))
+          .finally(() => setAccountBusy(null));
+      } },
+    ]);
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -200,11 +239,40 @@ export default function SignInScreen() {
             </Animated.View>
           </View>
 
+          {isRestoring ? <ActivityIndicator style={styles.feedback} color={authColors.body} accessibilityLabel="Loading saved accounts" /> : null}
+          {savedAccountsError ? <View style={styles.feedback}>
+            <ErrorBanner message={savedAccountsError} style={styles.errorBanner} textStyle={styles.errorText} />
+            <Pressable accessibilityRole="button" onPress={() => void reloadSavedAccounts()} style={styles.accountAction}><Text style={styles.link}>Try again</Text></Pressable>
+          </View> : null}
+          {!showForm && !isRestoring ? <View style={styles.feedback}>
+            {savedAccounts.length ? savedAccounts.map((account) => <View key={account.id} style={styles.accountCard}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Continue as ${account.username}`} disabled={Boolean(accountBusy)}
+                onPress={() => void openAccount(account.id, account.email)} style={styles.accountIdentity}>
+                <View style={styles.avatar}>
+                  <Ionicons name="person" size={24} color={authColors.body} />
+                  {account.profile_photo_url ? <Image source={{ uri: account.profile_photo_url }} style={StyleSheet.absoluteFill} /> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.accountName}>{[account.first_name, account.last_name].filter(Boolean).join(' ') || account.username}</Text>
+                  <Text style={styles.footerText} numberOfLines={1}>@{account.username}</Text>
+                  <Text style={styles.footerText} numberOfLines={1}>{account.email}</Text>
+                </View>
+                {accountBusy === account.id ? <ActivityIndicator color={authColors.body} /> : <Ionicons name="chevron-forward" size={18} color={authColors.body} />}
+              </Pressable>
+              <View style={styles.accountActions}>
+                <Pressable accessibilityRole="button" disabled={Boolean(accountBusy)} onPress={() => selectPassword(account.email)} style={styles.accountAction}><Text style={styles.link}>Use password</Text></Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${account.username} from this device`} disabled={Boolean(accountBusy)} onPress={() => confirmRemove(account.id)} style={styles.accountAction}><Text style={styles.link}>Remove</Text></Pressable>
+              </View>
+            </View>) : <Text style={styles.footerText}>No saved accounts on this device.</Text>}
+            {savedAccounts.length ? <Pressable accessibilityRole="button" disabled={Boolean(accountBusy)} onPress={() => { setError(null); setShowForm(true); }} style={styles.accountAction}><Text style={styles.link}>Use another account</Text></Pressable> : null}
+          </View> : null}
+          {showForm || (!isRestoring && !savedAccounts.length) ? <>
           <Animated.View shouldRasterizeIOS={false} style={[styles.formCard, formAnimation]}>
             <BlurView pointerEvents="none" tint={isDark ? 'dark' : 'light'} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
             <View style={styles.inputRow}>
               <TextInput
                 accessibilityLabel="Email or username"
+                editable={!isSubmitting}
                 autoCapitalize="none"
                 autoComplete="username"
                 autoCorrect={false}
@@ -241,6 +309,7 @@ export default function SignInScreen() {
                   <TextInput
                     ref={passwordRef}
                     accessibilityLabel="Password"
+                    editable={!isSubmitting}
                     autoCapitalize="none"
                     autoComplete="current-password"
                     autoCorrect={false}
@@ -279,6 +348,9 @@ export default function SignInScreen() {
             ) : null}
           </Animated.View>
 
+          {showForm && savedAccounts.length ? <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => { updateIdentifier(''); setPassword(''); setShowForm(false); }} style={styles.accountAction}><Text style={styles.link}>Saved accounts</Text></Pressable> : null}
+          </> : null}
+
           {isAccountMissing ? (
             <View accessibilityRole="alert" style={[styles.errorBanner, styles.unregisteredBanner]}>
               <Text style={styles.errorText}>No account found with this email or username.</Text>
@@ -308,6 +380,12 @@ export default function SignInScreen() {
 
 function createStyles(theme: AuthThemeColors, isDark: boolean) {
  return StyleSheet.create({
+  accountCard: { backgroundColor: theme.surface, borderColor: theme.glassBorder, borderWidth: StyleSheet.hairlineWidth, borderRadius: 17, marginTop: 12, padding: 14 },
+  accountIdentity: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64 },
+  avatar: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', backgroundColor: theme.control, alignItems: 'center', justifyContent: 'center' },
+  accountName: { color: theme.title, fontSize: 17, fontWeight: '600' },
+  accountActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  accountAction: { minHeight: 44, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8 },
   safe: { flex: 1, backgroundColor: theme.canvas },
   content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 28, paddingTop: 32, paddingBottom: 120 },
   hero: { alignItems: 'center' },

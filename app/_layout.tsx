@@ -20,6 +20,12 @@ function RootNavigator() {
         <Stack.Protected guard={!user}><Stack.Screen name="(auth)" /></Stack.Protected>
         <Stack.Protected guard={Boolean(user)}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="discover/journey/[id]" />
+          <Stack.Screen name="post/[id]" />
+          <Stack.Screen name="public-profile/[id]" />
+          <Stack.Screen name="public-profile/[id]/connections" />
+          <Stack.Screen name="saved-journeys" />
+          <Stack.Screen name="explore/place/[id]" />
           <Stack.Screen name="journey/[id]" options={{ contentStyle: { backgroundColor: colors.glassCanvas } }} />
           <Stack.Screen name="journey/[id]/photo/[mediaId]" options={{ animation: 'fade' }} />
           <Stack.Screen name="journey/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />

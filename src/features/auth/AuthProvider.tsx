@@ -1,17 +1,25 @@
-import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { setUnauthorizedHandler } from '@/api/client';
+import { ApiError, setUnauthorizedHandler } from '@/api/client';
 import { authApi } from '@/features/auth/api';
 import { tokenStorage } from '@/features/auth/storage';
 import { clearPrivateLocalData } from '@/features/auth/cleanup';
 import type { AuthUser, ProfileUpdateInput, SignUpInput } from '@/features/auth/types';
+
+import { savedAccountStorage, type SavedAccount } from './savedAccounts';
 
 type AuthContextValue = {
   user: AuthUser | null;
   isRestoring: boolean;
   signIn: (identifier: string, password: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
-  signOut: () => Promise<void>;
+  savedAccounts: SavedAccount[];
+  savedAccountsError: string | null;
+  activeAccount: AuthUser | null;
+  reloadSavedAccounts: () => Promise<void>;
+  removeSavedAccount: (id: string) => Promise<void>;
+  quickSignIn: (id: string) => Promise<boolean>;
+  signOut: (saveAccount?: boolean) => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
   updateProfile: (input: ProfileUpdateInput) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -20,8 +28,45 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const sessionVersion = useRef(0);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
+
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+  const [savedAccountsError, setSavedAccountsError] = useState<string | null>(null);
+  const reloadSavedAccounts = useCallback(async () => {
+    try {
+      setSavedAccounts(await savedAccountStorage.list());
+      setSavedAccountsError(null);
+    } catch {
+      setSavedAccountsError('Saved accounts could not be loaded. Please try again.');
+    }
+  }, []);
+  const removeSavedAccount = useCallback(async (id: string) => {
+    await savedAccountStorage.remove(id);
+    await reloadSavedAccounts();
+  }, [reloadSavedAccounts]);
+  const quickSignIn = useCallback(async (id: string) => {
+    const token = await savedAccountStorage.token(id);
+    if (!token) return false;
+    let restored: AuthUser;
+    try {
+      restored = await authApi.me(token);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await savedAccountStorage.forgetSession(id);
+        return false;
+      }
+      throw error;
+    }
+    if (restored.id !== id) {
+      await savedAccountStorage.forgetSession(id);
+      return false;
+    }
+    await tokenStorage.set(token);
+    setUser(restored);
+    return true;
+  }, []);
 
   const establishSession = useCallback(async (identifier: string, password: string) => {
     const token = await authApi.login(identifier.trim().toLowerCase(), password);
@@ -47,29 +92,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [establishSession],
   );
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (saveAccount = false) => {
+    sessionVersion.current += 1;
+    if (user) {
+      if (saveAccount) {
+        const token = await tokenStorage.get();
+        if (!token) throw new Error('Session unavailable. Choose Don’t Save to sign out.');
+        await savedAccountStorage.save(user, token);
+      } else {
+        // Revoking quick access is required; broken card metadata must not block logout.
+        await savedAccountStorage.forgetSession(user.id);
+        try { await savedAccountStorage.remove(user.id); } catch {
+          setSavedAccountsError('Account details could not be removed. Quick login has been disabled.');
+        }
+      }
+      await reloadSavedAccounts();
+    }
     await tokenStorage.remove();
     await clearPrivateLocalData();
     setUser(null);
-  }, []);
+  }, [reloadSavedAccounts, user]);
 
   const deleteAccount = useCallback(async (password: string) => {
+    sessionVersion.current += 1;
+    // Remove remembered credentials before deleting the server account.
+    if (user) await removeSavedAccount(user.id);
     await authApi.deleteAccount(password);
     await tokenStorage.remove();
     await clearPrivateLocalData();
     setUser(null);
-  }, []);
+  }, [removeSavedAccount, user]);
 
   const updateProfile = useCallback(async (input: ProfileUpdateInput) => {
-    setUser(await authApi.updateProfile(input));
+    const version = sessionVersion.current;
+    const updated = await authApi.updateProfile(input);
+    if (version === sessionVersion.current) setUser(updated);
   }, []);
 
   const refreshUser = useCallback(async () => {
-    setUser(await authApi.me());
+    const version = sessionVersion.current;
+    const updated = await authApi.me();
+    if (version === sessionVersion.current) setUser(updated);
   }, []);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => setUser(null));
+    setUnauthorizedHandler(() => { sessionVersion.current += 1; setUser(null); });
     return () => setUnauthorizedHandler(null);
   }, []);
 
@@ -77,6 +144,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     let active = true;
     async function restoreSession() {
       try {
+        await reloadSavedAccounts();
         const token = await tokenStorage.get();
         if (!token) return;
         const restoredUser = await authApi.me(token);
@@ -91,11 +159,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadSavedAccounts]);
 
   const value = useMemo(
-    () => ({ user, isRestoring, signIn, signUp, signOut, deleteAccount, updateProfile, refreshUser }),
-    [deleteAccount, isRestoring, refreshUser, signIn, signOut, signUp, updateProfile, user],
+    () => ({ user, activeAccount: user, savedAccounts, savedAccountsError, reloadSavedAccounts, removeSavedAccount, quickSignIn, isRestoring, signIn, signUp, signOut, deleteAccount, updateProfile, refreshUser }),
+    [savedAccounts, savedAccountsError, reloadSavedAccounts, removeSavedAccount, quickSignIn, deleteAccount, isRestoring, refreshUser, signIn, signOut, signUp, updateProfile, user],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

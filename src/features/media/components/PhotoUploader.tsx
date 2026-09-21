@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
+import { useProfileTheme } from '@/features/profile/theme';
 import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { ApiError } from '@/api/client';
@@ -21,15 +22,26 @@ export function PhotoUploader({
   onUploaded,
   buttonStyle,
   glassButton = false,
+  onBusyChange,
+  autoOpen = false,
+  buttonLabel = 'Add Photos',
+  renderControls,
 }: {
   journeyId: string;
   onUploaded: (media: JourneyMedia) => void;
   buttonStyle?: ViewStyle;
   glassButton?: boolean;
+  onBusyChange?: (busy: boolean) => void;
+  autoOpen?: boolean;
+  buttonLabel?: string;
+  renderControls?: (controls: { onPress: () => void; disabled: boolean }) => ReactNode;
 }) {
   const [items, setItems] = useState<UploadItem[]>([]);
+  const theme = useProfileTheme();
+  const opened = useRef(false);
   const [isPicking, setIsPicking] = useState(false);
   const isBusy = isPicking || items.some((item) => item.status === 'uploading' || item.status === 'preparing');
+  useEffect(() => { onBusyChange?.(isBusy); }, [isBusy, onBusyChange]);
 
   function update(key: string, values: Partial<UploadItem>) {
     setItems((current) => current.map((item) => item.key === key ? { ...item, ...values } : item));
@@ -63,14 +75,18 @@ export function PhotoUploader({
   }
 
   const UploadButton = glassButton ? SecondaryButton : PrimaryButton;
+  const openPicker = useEffectEvent(() => { void choose(); });
+  useEffect(() => { if (autoOpen && !opened.current) { opened.current = true; openPicker(); } }, [autoOpen]);
 
   return <View>
-    <UploadButton style={buttonStyle} disabled={isBusy} loading={isPicking} onPress={() => void choose()}>Add Photos</UploadButton>
+    {renderControls ? renderControls({ onPress: () => void choose(), disabled: isBusy }) : (
+      <UploadButton style={buttonStyle} disabled={isBusy} loading={isPicking} onPress={() => void choose()}>{buttonLabel}</UploadButton>
+    )}
     {items.length ? <View style={styles.queue}>{items.map((item) => (
-      <View key={item.key} style={styles.row}>
+      <View key={item.key} style={[styles.row, { backgroundColor: theme.placeholder }]}>
         <View style={styles.rowCopy}>
-          <Text numberOfLines={1} style={styles.name}>{item.name}</Text>
-          <Text style={[styles.status, item.status === 'error' && styles.error]}>
+          <Text numberOfLines={1} style={[styles.name, { color: theme.ink }]}>{item.name}</Text>
+          <Text style={[styles.status, { color: theme.muted }, item.status === 'error' && styles.error]}>
             {item.status === 'preparing' ? 'Preparing…' : item.status === 'uploading' ? `Uploading ${item.progress}%` : item.status === 'success' ? 'Added to album' : item.error}
           </Text>
           {item.status === 'uploading' ? <View style={styles.track}><View style={[styles.progress, { width: `${item.progress}%` }]} /></View> : null}

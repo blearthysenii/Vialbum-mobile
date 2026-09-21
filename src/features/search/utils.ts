@@ -53,9 +53,9 @@ export function resultMetadata(item: SearchResult): string {
 }
 
 export function searchNavigationTarget(item: SearchResult) {
-  if (item.type === 'journey') return { pathname: '/journey/[id]' as const, params: { id: item.id } };
+  if (item.type === 'journey') return { pathname: '/post/[id]' as const, params: { id: item.id, scope: 'own' } };
   if (item.type === 'memory') {
-    return { pathname: '/journey/[id]' as const, params: { id: item.journey_id, memoryId: item.id } };
+    return { pathname: '/post/[id]' as const, params: { id: item.journey_id, scope: 'own' } };
   }
   return {
     pathname: '/journey/[id]/photo/[mediaId]' as const,

@@ -44,7 +44,7 @@ test('formats result metadata and stable journey day numbers', () => {
 });
 
 test('builds existing navigation targets for every result type', () => {
-  assert.equal(JSON.stringify(searchNavigationTarget({ type: 'journey', id: 'j' })), JSON.stringify({ pathname: '/journey/[id]', params: { id: 'j' } }));
-  assert.equal(JSON.stringify(searchNavigationTarget({ type: 'memory', id: 'm', journey_id: 'j' })), JSON.stringify({ pathname: '/journey/[id]', params: { id: 'j', memoryId: 'm' } }));
+  assert.equal(JSON.stringify(searchNavigationTarget({ type: 'journey', id: 'j' })), JSON.stringify({ pathname: '/post/[id]', params: { id: 'j', scope: 'own' } }));
+  assert.equal(JSON.stringify(searchNavigationTarget({ type: 'memory', id: 'm', journey_id: 'j' })), JSON.stringify({ pathname: '/post/[id]', params: { id: 'j', scope: 'own' } }));
   assert.equal(JSON.stringify(searchNavigationTarget({ type: 'photo', id: 'p', journey_id: 'j' })), JSON.stringify({ pathname: '/journey/[id]/photo/[mediaId]', params: { id: 'j', mediaId: 'p' } }));
 });

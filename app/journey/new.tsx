@@ -7,7 +7,7 @@ export default function NewJourneyScreen() {
     <NewJourneyForm
       onCancel={() => router.back()}
       onCreated={(id) =>
-        router.replace({ pathname: '/journey/[id]', params: { id } })
+        router.replace({ pathname: '/post/[id]', params: { id, scope: 'own' } })
       }
     />
   );

@@ -61,7 +61,12 @@ export function prepareJourneyDetails(id: string, knownJourney?: Journey) {
   return request;
 }
 
-export function clearPreparedJourneyDetails() {
+export function clearPreparedJourneyDetails(id?: string) {
+  if (id) {
+    cache.delete(id);
+    pending.delete(id);
+    return;
+  }
   cache.clear();
   pending.clear();
 }

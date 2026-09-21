@@ -46,7 +46,22 @@ export default function SettingsScreen() {
     return () => { active = false; };
   }, [journeys]);
   const totalMemories = useMemo(() => summaryJourneys.reduce((sum, journey) => sum + journey.memories.length, 0), [summaryJourneys]);
-  async function logout() { if (signingOut) return; setSigningOut(true); try { await signOut(); router.replace('/sign-in'); } finally { setSigningOut(false); } }
+  async function logout(saveAccount: boolean) {
+    if (signingOut) return;
+    setSigningOut(true);
+    try { await signOut(saveAccount); router.replace('/sign-in'); }
+    catch { Alert.alert('Unable to sign out', 'Please try again. If saving fails, choose Don’t Save to sign out.'); }
+    finally { setSigningOut(false); }
+  }
+  function confirmLogout() {
+    if (signingOut) return;
+    Alert.alert('Do you want to save this account on this device?',
+      'Saving lets anyone with access to this unlocked device sign in while your session is valid. Your password is never saved.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Don’t Save', style: 'destructive', onPress: () => void logout(false) },
+        { text: 'Save', onPress: () => void logout(true) },
+      ]);
+  }
   async function exportAccount() { try { await exportApi.account(setExportState); } catch (error) { Alert.alert('Export unavailable', error instanceof Error ? error.message : 'Please try again.'); } finally { setExportState('idle'); } }
   const groupStyle = [styles.group, { backgroundColor: theme.glass, borderColor: theme.border }];
   const row = (icon: keyof typeof Ionicons.glyphMap, title: string, onPress?: () => void, trailing?: React.ReactNode, danger = false) => <Pressable disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}><View style={[styles.iconWell, { backgroundColor: theme.glassStrong }]}><Ionicons name={icon} size={20} color={danger ? theme.danger : theme.ink} /></View><Text style={[styles.rowText, { color: danger ? theme.danger : theme.ink }]}>{title}</Text>{trailing}</Pressable>;
@@ -57,7 +72,7 @@ export default function SettingsScreen() {
       {showSummary && !loadingSummary ? <View style={styles.summaryDetails}><TravelStatsCard journeys={summaryJourneys} totalMemories={totalMemories} theme={theme} /></View> : null}
       <Text style={[styles.label, { color: theme.muted }]}>YOUR VIALBUM</Text><View style={groupStyle}><BlurView pointerEvents="none" intensity={theme.dark ? 34 : 24} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />{row('arrow-down-circle-outline', 'Export My Data', () => void exportAccount(), exportState !== 'idle' ? <ActivityIndicator color={theme.muted} /> : <Ionicons name="chevron-forward" size={17} color={theme.subtle} />)}</View>
       <Text style={[styles.label, { color: theme.muted }]}>ABOUT</Text><View style={groupStyle}><BlurView pointerEvents="none" intensity={theme.dark ? 34 : 24} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />{row('information-circle-outline', 'Version', undefined, <Text style={[styles.value, { color: theme.muted }]}>{version}{build ? ` (${build})` : ''}</Text>)}{validPublicUrl(accountLinks.privacy) ? <><View style={[styles.divider, { backgroundColor: theme.divider }]} />{row('shield-checkmark-outline', 'Privacy Policy', () => void Linking.openURL(accountLinks.privacy!), <Ionicons name="chevron-forward" size={17} color={theme.subtle} />)}</> : null}{validPublicUrl(accountLinks.terms) ? <><View style={[styles.divider, { backgroundColor: theme.divider }]} />{row('document-text-outline', 'Terms', () => void Linking.openURL(accountLinks.terms!), <Ionicons name="chevron-forward" size={17} color={theme.subtle} />)}</> : null}</View>
-      <Text style={[styles.label, { color: theme.muted }]}>ACCOUNT</Text><View style={groupStyle}><BlurView pointerEvents="none" intensity={theme.dark ? 34 : 24} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />{row('log-out-outline', 'Sign Out', () => void logout(), signingOut ? <ActivityIndicator color={theme.muted} /> : null)}<View style={[styles.divider, { backgroundColor: theme.divider }]} />{row('trash-outline', 'Delete Account', () => setShowDelete(true), null, true)}</View>
+      <Text style={[styles.label, { color: theme.muted }]}>ACCOUNT</Text><View style={groupStyle}><BlurView pointerEvents="none" intensity={theme.dark ? 34 : 24} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />{row('log-out-outline', 'Sign Out', confirmLogout, signingOut ? <ActivityIndicator color={theme.muted} /> : null)}<View style={[styles.divider, { backgroundColor: theme.divider }]} />{row('trash-outline', 'Delete Account', () => setShowDelete(true), null, true)}</View>
     </ScrollView>
     <ExportProgress state={exportState} /><DeleteAccountSheet visible={showDelete} onClose={() => setShowDelete(false)} onDelete={async (password) => { await deleteAccount(password); setShowDelete(false); router.replace('/sign-in'); }} />
   </SafeAreaView>;

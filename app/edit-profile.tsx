@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/client';
@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { authApi } from '@/features/auth/api';
 import { cachedImageSource } from '@/features/media/imageUrl';
 import { ProfileAvatarImage } from '@/features/profile/components/ProfileAvatarImage';
+import { ProfileFieldEditor, type ProfileFieldKey } from '@/features/profile/components/ProfileFieldEditor';
 import { useProfileTheme } from '@/features/profile/theme';
 import { systemFont } from '@/theme/tokens';
 
@@ -33,6 +34,7 @@ export default function EditProfileScreen() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [activeField, setActiveField] = useState<ProfileFieldKey | null>(null);
   const usernameCheck = useRef(0);
 
   const normalized = username.trim().toLowerCase();
@@ -136,9 +138,28 @@ export default function EditProfileScreen() {
 
   const preview = photo?.uri ?? (!removePhoto ? user.profile_photo_url : null);
   const coverPreview = cover?.uri ?? (!removeCover ? user.profile_cover_url : null);
-  const fields = [{ key: 'firstName' as const, label: 'First name', value: firstName, set: setFirstName, max: 50 }, { key: 'lastName' as const, label: 'Last name', value: lastName, set: setLastName, max: 50 }, { key: 'username' as const, label: 'Username', value: username, set: (value: string) => setUsername(value.toLowerCase()), max: 30 }];
+  const fields = [
+    { key: 'firstName' as const, label: 'First name', value: firstName },
+    { key: 'lastName' as const, label: 'Last name', value: lastName },
+    { key: 'username' as const, label: 'Username', value: username },
+  ];
+  const activeDraft = activeField === 'firstName' ? firstName
+    : activeField === 'lastName' ? lastName
+      : activeField === 'username' ? username
+        : activeField === 'bio' ? bio
+          : activeField === 'location' ? location
+            : '';
+  function updateDraft(field: ProfileFieldKey, value: string) {
+    if (field === 'firstName') setFirstName(value);
+    else if (field === 'lastName') setLastName(value);
+    else if (field === 'username') { setUsername(value); usernameCheck.current += 1; }
+    else if (field === 'bio') setBio(value);
+    else setLocation(value);
+    clearError(field);
+    setActiveField(null);
+  }
   return <SafeAreaView style={[styles.safe, { backgroundColor: theme.canvas }]}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={[styles.nav, { backgroundColor: theme.glass, borderColor: theme.border }]}><BlurView pointerEvents="none" intensity={theme.dark ? 42 : 30} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /><Pressable disabled={saving} hitSlop={6} onPress={requestClose} style={({ pressed }) => [styles.navButton, pressed && styles.actionPressed]}><Text style={[styles.navAction, { color: theme.accent }]}>Cancel</Text></Pressable><Text style={[styles.title, { color: theme.ink }]}>Edit Profile</Text><Pressable disabled={!dirty || saving} hitSlop={6} onPress={() => void save()} style={({ pressed }) => [styles.navButton, styles.save, pressed && dirty && styles.actionPressed]}>{saving ? <ActivityIndicator size="small" color={theme.accent} /> : <Text style={[styles.navAction, styles.saveText, { color: theme.accent }, !dirty && styles.disabled]}>Save</Text>}</Pressable></View>
+    <View style={styles.nav}><Pressable disabled={saving} hitSlop={6} onPress={requestClose} style={({ pressed }) => [styles.navButton, pressed && styles.actionPressed]}><Text style={[styles.navAction, { color: theme.accent }]}>Cancel</Text></Pressable><Text style={[styles.title, { color: theme.ink }]}>Edit Profile</Text><Pressable disabled={!dirty || saving} hitSlop={6} onPress={() => void save()} style={({ pressed }) => [styles.navButton, styles.save, pressed && dirty && styles.actionPressed]}>{saving ? <ActivityIndicator size="small" color={theme.accent} /> : <Text style={[styles.navAction, styles.saveText, { color: theme.accent }, !dirty && styles.disabled]}>Save</Text>}</Pressable></View>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.mediaComposition}>
         <View style={[styles.coverButton, { backgroundColor: theme.glassStrong }]}>
@@ -150,21 +171,22 @@ export default function EditProfileScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Edit profile photo" hitSlop={8} onPress={showPhotoActions} style={({ pressed }) => [styles.avatarCamera, { backgroundColor: theme.glassStrong, borderColor: theme.canvas }, pressed && styles.cameraPressed]}><Ionicons name="camera-outline" size={16} color={theme.ink} /></Pressable>
         </View>
       </View>
-      <View style={[styles.form, { backgroundColor: theme.glassStrong, borderColor: theme.border }]}>{fields.map((field, index) => <View key={field.key}><View style={[styles.field, index > 0 && { borderTopColor: theme.divider, borderTopWidth: StyleSheet.hairlineWidth }]}><Text style={[styles.label, { color: theme.muted }]}>{field.label}</Text><TextInput value={field.value} onChangeText={(value) => { field.set(value); clearError(field.key); if (field.key === 'username') usernameCheck.current += 1; }} onBlur={field.key === 'username' ? () => void checkUsername() : undefined} maxLength={field.max} autoCapitalize={field.key === 'username' ? 'none' : 'words'} autoCorrect={field.key !== 'username'} style={[styles.input, { color: theme.ink }]} />{field.key === 'username' && checkingUsername ? <ActivityIndicator size="small" color={theme.muted} /> : null}</View>{errors[field.key] ? <Text style={[styles.fieldError, { color: theme.danger }]}>{errors[field.key]}</Text> : null}</View>)}</View>
-      <View style={[styles.bioCard, { backgroundColor: theme.glassStrong, borderColor: theme.border }]}><Text style={[styles.cardLabel, { color: theme.muted }]}>Bio</Text><TextInput value={bio} onChangeText={(value) => { setBio(value); clearError('bio'); }} maxLength={150} multiline autoCapitalize="sentences" autoCorrect placeholder="Share something about yourself…" placeholderTextColor={theme.subtle} style={[styles.bioInput, { color: theme.ink }]} textAlignVertical="top" /><Text style={[styles.counter, { color: bio.length >= 140 ? theme.danger : theme.muted }]}>{bio.length}/150</Text></View>
+      <View style={[styles.form, { backgroundColor: theme.glassStrong, borderColor: theme.border }]}>{fields.map((field, index) => <View key={field.key}><Pressable accessibilityRole="button" onPress={() => setActiveField(field.key)} style={({ pressed }) => [styles.field, index > 0 && { borderTopColor: theme.divider, borderTopWidth: StyleSheet.hairlineWidth }, pressed && styles.rowPressed]}><Text style={[styles.label, { color: theme.muted }]}>{field.label}</Text><Text numberOfLines={1} style={[styles.fieldValue, { color: theme.ink }]}>{field.value}</Text>{field.key === 'username' && checkingUsername ? <ActivityIndicator size="small" color={theme.muted} /> : <Ionicons name="chevron-forward" size={17} color={theme.subtle} />}</Pressable>{errors[field.key] ? <Text style={[styles.fieldError, { color: theme.danger }]}>{errors[field.key]}</Text> : null}</View>)}</View>
+      <Pressable accessibilityRole="button" onPress={() => setActiveField('bio')} style={({ pressed }) => [styles.bioCard, { backgroundColor: theme.glassStrong, borderColor: theme.border }, pressed && styles.rowPressed]}><View style={styles.readOnlyCopy}><Text style={[styles.cardLabel, { color: theme.muted }]}>Bio</Text><Text numberOfLines={2} style={[styles.readOnlyValue, { color: bio ? theme.ink : theme.subtle }]}>{bio || 'Optional'}</Text></View><Ionicons name="chevron-forward" size={17} color={theme.subtle} /></Pressable>
       {errors.bio ? <Text style={[styles.cardError, { color: theme.danger }]}>{errors.bio}</Text> : null}
-      <View style={[styles.locationCard, { backgroundColor: theme.glassStrong, borderColor: theme.border }]}><Ionicons name="location-outline" size={20} color={theme.muted} /><View style={styles.locationContent}><Text style={[styles.locationLabel, { color: theme.muted }]}>Location</Text><TextInput value={location} onChangeText={(value) => { setLocation(value); clearError('location'); }} maxLength={100} autoCapitalize="words" autoCorrect placeholder="Optional" placeholderTextColor={theme.subtle} returnKeyType="done" style={[styles.locationInput, { color: theme.ink }]} /></View><Ionicons name="chevron-forward" size={17} color={theme.subtle} /></View>
+      <Pressable accessibilityRole="button" onPress={() => setActiveField('location')} style={({ pressed }) => [styles.locationCard, { backgroundColor: theme.glassStrong, borderColor: theme.border }, pressed && styles.rowPressed]}><Ionicons name="location-outline" size={20} color={theme.muted} /><View style={styles.locationContent}><Text style={[styles.locationLabel, { color: theme.muted }]}>Location</Text><Text numberOfLines={1} style={[styles.locationValue, { color: location ? theme.ink : theme.subtle }]}>{location || 'Optional'}</Text></View><Ionicons name="chevron-forward" size={17} color={theme.subtle} /></Pressable>
       {errors.location ? <Text style={[styles.cardError, { color: theme.danger }]}>{errors.location}</Text> : null}
       {errors.form ? <Text style={[styles.formError, { color: theme.danger }]}>{errors.form}</Text> : null}
     </ScrollView>
+    <ProfileFieldEditor field={activeField} value={activeDraft} visible={activeField !== null} onCancel={() => setActiveField(null)} onConfirm={updateDraft} />
   </KeyboardAvoidingView></SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  nav: { height: 58, marginTop: 8, marginHorizontal: 12, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, overflow: 'hidden' },
-  navButton: { position: 'absolute', left: 10, minWidth: 64, height: 44, justifyContent: 'center' },
-  save: { left: undefined, right: 10, alignItems: 'flex-end' },
+  nav: { height: 58, marginTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  navButton: { position: 'absolute', left: 13, minWidth: 64, height: 44, justifyContent: 'center' },
+  save: { left: undefined, right: 13, alignItems: 'flex-end' },
   title: { fontFamily: systemFont, fontSize: 17, lineHeight: 22, fontWeight: '600', letterSpacing: -0.35 },
   navAction: { fontFamily: systemFont, fontSize: 16, lineHeight: 21, fontWeight: '400' },
   saveText: { fontWeight: '600' },
@@ -184,16 +206,17 @@ const styles = StyleSheet.create({
   form: { marginHorizontal: 18, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   field: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
   label: { width: 92, fontFamily: systemFont, fontSize: 14, lineHeight: 19, fontWeight: '400' },
-  input: { flex: 1, paddingVertical: 15, fontFamily: systemFont, fontSize: 16, lineHeight: 21, fontWeight: '400', textAlign: 'right' },
+  fieldValue: { flex: 1, fontFamily: systemFont, fontSize: 15, lineHeight: 20, fontWeight: '400', textAlign: 'right', marginRight: 8 },
+  rowPressed: { opacity: 0.58 },
   fieldError: { marginHorizontal: 16, paddingTop: 1, paddingBottom: 8, fontFamily: systemFont, fontSize: 11, lineHeight: 15 },
-  bioCard: { minHeight: 142, marginHorizontal: 18, marginTop: 16, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
+  bioCard: { minHeight: 72, marginHorizontal: 18, marginTop: 16, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardLabel: { fontFamily: systemFont, fontSize: 13, lineHeight: 17, fontWeight: '500' },
-  bioInput: { minHeight: 78, paddingTop: 8, paddingBottom: 20, paddingHorizontal: 0, fontFamily: systemFont, fontSize: 15, lineHeight: 21, fontWeight: '400' },
-  counter: { position: 'absolute', right: 16, bottom: 12, fontFamily: systemFont, fontSize: 11, lineHeight: 15, fontWeight: '400' },
+  readOnlyCopy: { flex: 1 },
+  readOnlyValue: { marginTop: 3, fontFamily: systemFont, fontSize: 15, lineHeight: 20, fontWeight: '400' },
   locationCard: { minHeight: 68, marginHorizontal: 18, marginTop: 16, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   locationContent: { flex: 1, paddingVertical: 10 },
   locationLabel: { fontFamily: systemFont, fontSize: 12, lineHeight: 15, fontWeight: '500' },
-  locationInput: { minHeight: 28, paddingVertical: 2, paddingHorizontal: 0, fontFamily: systemFont, fontSize: 15, lineHeight: 20, fontWeight: '400' },
+  locationValue: { minHeight: 28, paddingTop: 3, fontFamily: systemFont, fontSize: 15, lineHeight: 20, fontWeight: '400' },
   cardError: { marginHorizontal: 34, marginTop: 6, fontFamily: systemFont, fontSize: 11, lineHeight: 15 },
   formError: { marginHorizontal: 24, marginTop: 14, fontFamily: systemFont, fontSize: 12, lineHeight: 16, textAlign: 'center' },
 });
