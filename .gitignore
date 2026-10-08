@@ -13,3 +13,22 @@ android/
 
 expo-env.d.ts
 # @end expo-cli
+
+# Local environment and private credentials (keep the documented template).
+.env*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.mobileprovision
+
+# Local Python tooling and coverage output.
+.venv/
+venv/
+.mypy_cache/
+.coverage*
+htmlcov/
