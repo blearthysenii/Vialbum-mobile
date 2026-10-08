@@ -1,6 +1,6 @@
-import { usePresentationStyles, resolvePresentationColor, presentationBlurTint } from '@/theme/presentation';
+import { usePresentationStyles, resolvePresentationColor } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { BlurView } from 'expo-blur';
+import { NavigationGlass, useNavigationEnvironment } from '@/features/navigation/NavigationGlass';
 import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import {
@@ -14,6 +14,7 @@ import {
 } from 'react';
 import {
   Animated,
+  AppState,
   Pressable,
   StyleSheet,
   type LayoutChangeEvent,
@@ -105,14 +106,16 @@ type TabButtonProps = {
   onNavbarIconPressOut: () => void;
   testID?: string;
   iconColor: string;
+  disabled: boolean;
   onLayout: (event: LayoutChangeEvent) => void;
 };
 
 // Equal inset on each side gives a wide capsule while preserving slot centers.
 const INDICATOR_INSET = 6;
+const AnimatedGesturePressable = Reanimated.createAnimatedComponent(Pressable);
 
 function TabButton({
-  tab, focused, onPress, onLongPress, onNavbarIconPressIn,
+  tab, focused, disabled, onPress, onLongPress, onNavbarIconPressIn,
   onNavbarIconPressOut, testID, iconColor, onLayout,
 }: TabButtonProps) {
   const styles = usePresentationStyles(presentationBaselineStyles);
@@ -121,7 +124,8 @@ function TabButton({
     <Pressable
       accessibilityLabel={tab.accessibilityLabel}
       accessibilityRole="tab"
-      accessibilityState={{ selected: focused }}
+      accessibilityState={{ selected: focused, disabled }}
+      disabled={disabled}
       onLongPress={onLongPress}
       onPress={onPress}
       onPressIn={onNavbarIconPressIn}
@@ -163,6 +167,7 @@ function VialbumTabBar({
   } = useTabBarController();
 
   const reduceMotion = useReducedMotion();
+  const { reduceTransparency, keyboardVisible } = useNavigationEnvironment();
   const [capsuleWidth, setCapsuleWidth] = useState(0);
   const [slotLayouts, setSlotLayouts] = useState<Record<string, LayoutRectangle>>({});
 
@@ -207,35 +212,38 @@ function VialbumTabBar({
 
   const showNavbarBrightness =
     useCallback(() => {
+      if (reduceMotion) { navbarPressBrightness.setValue(1); return; }
       Animated.timing(
         navbarPressBrightness,
         {
           toValue: 1,
           duration: 35,
-          useNativeDriver: false,
+          useNativeDriver: true,
         },
       ).start();
     }, [
-      navbarPressBrightness,
+      navbarPressBrightness, reduceMotion,
     ]);
 
   const hideNavbarBrightness =
     useCallback(() => {
+      if (reduceMotion) { navbarPressBrightness.setValue(0); return; }
       Animated.timing(
         navbarPressBrightness,
         {
           toValue: 0,
           duration: 150,
-          useNativeDriver: false,
+          useNativeDriver: true,
         },
       ).start();
     }, [
-      navbarPressBrightness,
+      navbarPressBrightness, reduceMotion,
     ]);
 
   const springNavbarPress =
     useCallback(
       (toValue: number) => {
+        if (reduceMotion) { navbarPressProgress.setValue(0); return; }
         Animated.spring(
           navbarPressProgress,
           {
@@ -243,17 +251,18 @@ function VialbumTabBar({
             damping: 20,
             stiffness: 280,
             mass: 0.62,
-            useNativeDriver: false,
+            useNativeDriver: true,
           },
         ).start();
       },
       [
-        navbarPressProgress,
+        navbarPressProgress, reduceMotion,
       ],
     );
 
   const releaseNavbarPress =
     useCallback(() => {
+      if (reduceMotion) { navbarPressProgress.setValue(0); return; }
       Animated.spring(
         navbarPressProgress,
         {
@@ -261,11 +270,11 @@ function VialbumTabBar({
           damping: 19,
           stiffness: 250,
           mass: 0.68,
-          useNativeDriver: false,
+          useNativeDriver: true,
         },
       ).start();
     }, [
-      navbarPressProgress,
+      navbarPressProgress, reduceMotion,
     ]);
 
   const finishBrightnessAfterMinimumTap =
@@ -411,6 +420,20 @@ function VialbumTabBar({
     if (navbarReleaseTimer.current) clearTimeout(navbarReleaseTimer.current);
   }, []);
 
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', status => {
+      if (status === 'active') return;
+      clearNavbarReleaseTimer();
+      navbarPressProgress.stopAnimation();
+      navbarPressBrightness.stopAnimation();
+      navbarPressProgress.setValue(0);
+      navbarPressBrightness.setValue(0);
+      navbarTouchMode.current = null;
+      navbarPressStartedCollapsed.current = false;
+    });
+    return () => subscription.remove();
+  }, [clearNavbarReleaseTimer, navbarPressBrightness, navbarPressProgress]);
+
   const measureSlot = useCallback((key: string, layout: LayoutRectangle) => {
     setSlotLayouts(previous => {
       const existing = previous[key];
@@ -454,7 +477,7 @@ function VialbumTabBar({
   }, [activeCenterY, activePosition, reduceMotion, slotCenters]);
 
   const snapToIndex = useCallback((index: number) => {
-    if (isInteractionLocked()) return;
+    if (isInteractionLocked()) { settleIndicator(state.index); return; }
     const route = state.routes[index];
     if (!route || !isTabName(route.name) || index === state.index) {
       settleIndicator(state.index);
@@ -491,8 +514,8 @@ function VialbumTabBar({
       if (!collapsed) runOnJS(expand)();
     })
     .onUpdate(event => {
-      activePosition.set(Math.max(measuredCenters[0], Math.min(
-        measuredCenters[measuredCenters.length - 1],
+      activePosition.set(Math.max(Math.min(...measuredCenters), Math.min(
+        Math.max(...measuredCenters),
         dragStartPosition.get() + event.translationX,
       )));
     })
@@ -510,6 +533,7 @@ function VialbumTabBar({
     });
 
   useEffect(() => {
+    if (reduceMotion) { collapseProgress.setValue(collapsed ? 1 : 0); return; }
     Animated.spring(
       collapseProgress,
       {
@@ -523,7 +547,7 @@ function VialbumTabBar({
     ).start();
   }, [
     collapseProgress,
-    collapsed,
+    collapsed, reduceMotion,
   ]);
 
   useEffect(() => {
@@ -549,7 +573,9 @@ function VialbumTabBar({
 
   return (
     <Animated.View
-      pointerEvents={interactionLocked ? 'none' : 'auto'}
+      pointerEvents={interactionLocked || keyboardVisible ? 'none' : 'box-none'}
+      accessibilityElementsHidden={keyboardVisible}
+      importantForAccessibility={keyboardVisible ? 'no-hide-descendants' : 'auto'}
       onTouchStart={
         handleNavbarBackgroundPressIn
       }
@@ -561,7 +587,7 @@ function VialbumTabBar({
       }
       style={[
         styles.shell,
-        theme.dark && styles.darkShell,
+        { shadowOpacity: reduceTransparency ? .04 : .06, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2, display: keyboardVisible ? 'none' : 'flex' },
         {
           bottom: navigationBottom(insets.bottom),
         },
@@ -619,152 +645,28 @@ function VialbumTabBar({
         },
       ]}
     >
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.animatedBackground,
-          {
-            width:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [
-                    capsuleWidth,
-                    capsuleWidth + 10,
-                  ],
-                },
-              ),
-            height:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [62, 66],
-                },
-              ),
-            left:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [0, -5],
-                },
-              ),
-            top:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [0, -2],
-                },
-              ),
-          },
-        ]}
-      >
-        {momentsOverlay ? (
-          <BlurView intensity={34} tint={presentationBlurTint("systemThinMaterialDark")}
-            style={[styles.backgroundBar, { backgroundColor: resolvePresentationColor(theme.surface, 'backgroundColor', 'content'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'content') }]}>
-            <View style={styles.momentsHighlight} />
-          </BlurView>
-        ) : theme.dark ? (
-          <View style={[styles.backgroundBar, styles.darkCapsule, {
-            backgroundColor: resolvePresentationColor(theme.surface, 'backgroundColor', 'content'),
-            borderColor: resolvePresentationColor(theme.border, 'borderColor', 'content'),
-            borderWidth: 1,
-          }]} />
-        ) : (
-        <BlurView
-          intensity={34}
-          tint={presentationBlurTint("systemUltraThinMaterialLight")}
-          style={[styles.backgroundBar, { backgroundColor: resolvePresentationColor(theme.surface, 'backgroundColor', 'content') }]}
-        >
-          <View
-            pointerEvents="none"
-            style={
-              styles.surfaceTint
-            }
-          />
-
-          <View
-            pointerEvents="none"
-            style={
-              styles.bottomShade
-            }
-          />
-
-          <View
-            pointerEvents="none"
-            style={
-              styles.glassHighlight
-            }
-          />
-
-
-        </BlurView>
-        )}
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, {
+        transform: [
+          { scaleX: navbarPressProgress.interpolate({ inputRange: [0, 1], outputRange: [1, capsuleWidth > 0 ? (capsuleWidth + 6) / capsuleWidth : 1] }) },
+          { scaleY: navbarPressProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.045] }) },
+        ],
+      }]}>
+        <NavigationGlass dark={theme.dark} radius={NAVIGATION_HEIGHT / 2} reduceTransparency={reduceTransparency} />
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: NAVIGATION_HEIGHT / 2,
+          backgroundColor: theme.dark ? 'rgba(245,245,247,0.035)' : 'rgba(255,255,255,0.10)', opacity: navbarPressBrightness }]} />
       </Animated.View>
 
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.navbarPressLightOverlay,
-          theme.dark && { opacity: 0 },
-          {
-            width:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [
-                    capsuleWidth,
-                    capsuleWidth + 10,
-                  ],
-                },
-              ),
-            height:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [62, 66],
-                },
-              ),
-            left:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [0, -5],
-                },
-              ),
-            top:
-              navbarPressProgress.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [0, -2],
-                },
-              ),
-            backgroundColor:
-              resolvePresentationColor(navbarPressBrightness.interpolate(
-                {
-                  inputRange: [0, 1],
-                  outputRange: [
-                    'rgba(255,255,255,0)',
-                    'rgba(255,255,255,0.92)',
-                  ],
-                },
-              ), 'backgroundColor', 'content'),
-          },
-        ]}
-      />
-
       <View
+        accessibilityRole="tablist"
         onLayout={event => setCapsuleWidth(event.nativeEvent.layout.width)}
-        style={[styles.contentBar, theme.dark && styles.darkCapsule]}
+        style={styles.contentBar}
       >
 
         <Reanimated.View
           pointerEvents="none"
-          style={[styles.activeIndicator, { backgroundColor: resolvePresentationColor(theme.selectedSurface, 'backgroundColor', 'content') }, momentsOverlay && styles.momentsIndicator, activeAnimatedStyle]}
+          style={[styles.activeIndicator, { overflow: 'hidden' }, activeAnimatedStyle]}
         >
-          {momentsOverlay ? <>
-            <BlurView intensity={34} tint={presentationBlurTint("systemUltraThinMaterialDark")} style={StyleSheet.absoluteFill} />
-            <View style={styles.momentsSelectedTint} />
-          </> : null}
+          <NavigationGlass dark={theme.dark} selected radius={indicatorHeight / 2} reduceTransparency={reduceTransparency} />
         </Reanimated.View>
 
         {state.routes.map(
@@ -856,6 +758,7 @@ function VialbumTabBar({
                 onNavbarIconPressOut={
                   handleNavbarIconPressOut
                 }
+                disabled={interactionLocked || keyboardVisible}
                 iconColor={focused ? theme.activeIcon : theme.inactiveIcon}
                 tab={tab}
                 onLayout={event => measureSlot(route.key, event.nativeEvent.layout)}
@@ -868,7 +771,18 @@ function VialbumTabBar({
         )}
 
         <GestureDetector gesture={activePanGesture}>
-          <Reanimated.View
+          <AnimatedGesturePressable
+            hitSlop={6}
+            onLongPress={() => {
+              if (isInteractionLocked()) return;
+              navigation.emit({ type: 'tabLongPress', target: state.routes[state.index].key });
+            }}
+            onPress={() => {
+              if (isInteractionLocked()) return;
+              const route = state.routes[state.index];
+              navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            }}
+            accessibilityElementsHidden importantForAccessibility="no-hide-descendants" accessible={false}
             accessibilityLabel="Drag to switch tabs"
             accessibilityRole="adjustable"
             pointerEvents={slotsReady ? 'auto' : 'none'}
