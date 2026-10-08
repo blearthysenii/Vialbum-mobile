@@ -9,6 +9,8 @@ export type JourneyMedia = {
   type: 'photo' | 'video';
   url: string;
   thumbnail_url: string | null;
+  duration?: number | null;
+  stop_id?: string | null;
   original_filename: string | null;
   mime_type: string;
   file_size: number;
@@ -23,6 +25,7 @@ export type JourneyMedia = {
 };
 
 export type MediaUpdate = {
+  sort_order?: number;
   caption?: string | null;
   captured_at?: string | null;
   latitude?: string | null;
@@ -32,6 +35,11 @@ export type MediaUpdate = {
 };
 
 export type SelectedPhoto = {
+  type?: 'photo' | 'video';
+  duration?: number;
+  videoEdit?: import('./videoEdit').VideoEdit;
+  libraryId?: string;
+  requestId?: string;
   key: string;
   uri: string;
   name: string;

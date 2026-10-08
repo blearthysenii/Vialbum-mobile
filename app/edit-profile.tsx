@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
@@ -20,7 +21,9 @@ type PickedPhoto = { uri: string; name: string; type: string };
 type FieldErrors = Partial<Record<'firstName' | 'lastName' | 'username' | 'bio' | 'location' | 'form', string>>;
 
 export default function EditProfileScreen() {
-  const { user, updateProfile, refreshUser } = useAuth();
+  const styles = usePresentationStyles(presentationBaselineStyles, 'surface');
+
+  const { user, updateProfile, applyProfile, removeProfileCover: clearProfileCover } = useAuth();
   const theme = useProfileTheme();
   const [firstName, setFirstName] = useState(user?.first_name ?? '');
   const [lastName, setLastName] = useState(user?.last_name ?? '');
@@ -69,7 +72,7 @@ export default function EditProfileScreen() {
     const canRemove = Boolean(photo || (user?.profile_photo_url && !removePhoto));
     const options = canRemove ? ['Change Profile Photo', 'Remove Current Photo', 'Cancel'] : ['Change Profile Photo', 'Cancel'];
     if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: options.length - 1, destructiveButtonIndex: canRemove ? 1 : undefined }, (index) => {
+      ActionSheetIOS.showActionSheetWithOptions({ userInterfaceStyle: theme.dark ? 'dark' : 'light', options, cancelButtonIndex: options.length - 1, destructiveButtonIndex: canRemove ? 1 : undefined }, (index) => {
         if (index === 0) void pickPhoto();
         else if (canRemove && index === 1) { setPhoto(null); setRemovePhoto(true); }
       });
@@ -123,12 +126,11 @@ export default function EditProfileScreen() {
     if (saving || !dirty || !validate() || !(await checkUsername())) return;
     setSaving(true);
     try {
-      await updateProfile({ first_name: firstName.trim(), last_name: lastName.trim(), username: normalized, bio: bio.trim() || null, location: location.trim() || null });
-      if (photo) await authApi.uploadProfilePhoto(photo, () => undefined);
-      else if (removePhoto) await authApi.removeProfilePhoto();
-      if (cover) await authApi.uploadProfileCover(cover, () => undefined);
-      else if (removeCover) await authApi.removeProfileCover();
-      await refreshUser();
+      const updatedProfile = await updateProfile({ first_name: firstName.trim(), last_name: lastName.trim(), username: normalized, bio: bio.trim() || null, location: location.trim() || null });
+      if (photo) applyProfile(await authApi.uploadProfilePhoto(photo, () => undefined));
+      else if (removePhoto) { await authApi.removeProfilePhoto(); applyProfile({ ...updatedProfile, profile_photo_url: null }); }
+      if (cover) applyProfile(await authApi.uploadProfileCover(cover, () => undefined));
+      else if (removeCover) await clearProfileCover();
       router.back();
     } catch (error) {
       if (error instanceof ApiError && error.code === 'USERNAME_TAKEN') setErrors((current) => ({ ...current, username: 'This username is already taken.' }));
@@ -158,25 +160,25 @@ export default function EditProfileScreen() {
     clearError(field);
     setActiveField(null);
   }
-  return <SafeAreaView style={[styles.safe, { backgroundColor: theme.canvas }]}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={styles.nav}><Pressable disabled={saving} hitSlop={6} onPress={requestClose} style={({ pressed }) => [styles.navButton, pressed && styles.actionPressed]}><Text style={[styles.navAction, { color: theme.accent }]}>Cancel</Text></Pressable><Text style={[styles.title, { color: theme.ink }]}>Edit Profile</Text><Pressable disabled={!dirty || saving} hitSlop={6} onPress={() => void save()} style={({ pressed }) => [styles.navButton, styles.save, pressed && dirty && styles.actionPressed]}>{saving ? <ActivityIndicator size="small" color={theme.accent} /> : <Text style={[styles.navAction, styles.saveText, { color: theme.accent }, !dirty && styles.disabled]}>Save</Text>}</Pressable></View>
+  return <SafeAreaView style={[styles.safe, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'surface') }]}><KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={styles.nav}><Pressable disabled={saving} hitSlop={6} onPress={requestClose} style={({ pressed }) => [styles.navButton, pressed && styles.actionPressed]}><Text style={presentationTextStyle([styles.navAction, { color: resolvePresentationColor(theme.accent, 'color', 'content') }])}>Cancel</Text></Pressable><Text style={presentationTextStyle([styles.title, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>Edit Profile</Text><Pressable disabled={!dirty || saving} hitSlop={6} onPress={() => void save()} style={({ pressed }) => [styles.navButton, styles.save, pressed && dirty && styles.actionPressed]}>{saving ? <ActivityIndicator size="small" color={resolvePresentationColor(theme.accent, 'color', 'content')} /> : <Text style={presentationTextStyle([styles.navAction, styles.saveText, { color: resolvePresentationColor(theme.accent, 'color', 'content') }, !dirty && styles.disabled])}>Save</Text>}</Pressable></View>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.mediaComposition}>
-        <View style={[styles.coverButton, { backgroundColor: theme.glassStrong }]}>
-          {coverPreview ? <Image source={cachedImageSource(coverPreview, `edit-profile-cover:${user.id}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={180} /> : <View style={styles.coverPlaceholder}><Ionicons name="image-outline" size={23} color={theme.subtle} /><Text style={[styles.coverPlaceholderText, { color: theme.muted }]}>Choose a profile cover</Text></View>}
-          <Pressable accessibilityRole="button" accessibilityLabel="Edit profile cover photo" hitSlop={8} onPress={showCoverActions} style={({ pressed }) => [styles.coverCamera, { borderColor: theme.border }, pressed && styles.cameraPressed]}><BlurView pointerEvents="none" intensity={theme.dark ? 48 : 36} tint={theme.dark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} /><Ionicons name="camera-outline" size={18} color={theme.ink} /></Pressable>
+        <View style={[styles.coverButton, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'control') }]}>
+          {coverPreview ? <Image source={cachedImageSource(coverPreview, `edit-profile-cover:${user.id}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" transition={180} /> : <View style={styles.coverPlaceholder}><Ionicons name="image-outline" size={23} color={resolvePresentationColor(theme.subtle, 'color', 'content')} /><Text style={presentationTextStyle([styles.coverPlaceholderText, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>Choose a profile cover</Text></View>}
+          <Pressable accessibilityRole="button" accessibilityLabel="Edit profile cover photo" hitSlop={8} onPress={showCoverActions} style={({ pressed }) => [styles.coverCamera, { borderColor: resolvePresentationColor(theme.border, 'borderColor', 'control') }, pressed && styles.cameraPressed]}><BlurView pointerEvents="none" intensity={theme.dark ? 48 : 36} tint={presentationBlurTint(theme.dark ? 'dark' : 'light')} style={StyleSheet.absoluteFill} /><Ionicons name="camera-outline" size={18} color={resolvePresentationColor(theme.ink, 'color', 'content')} /></Pressable>
         </View>
         <View style={styles.avatarWrap}>
-          <View style={[styles.avatarRing, { backgroundColor: theme.canvas }]}><View style={[styles.avatar, { backgroundColor: theme.ink }]}><ProfileAvatarImage source={preview} label="edit-profile-avatar" cacheKey={`edit-profile-avatar:${user.id}`} style={StyleSheet.absoluteFill} fallbackIconSize={48} /></View></View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Edit profile photo" hitSlop={8} onPress={showPhotoActions} style={({ pressed }) => [styles.avatarCamera, { backgroundColor: theme.glassStrong, borderColor: theme.canvas }, pressed && styles.cameraPressed]}><Ionicons name="camera-outline" size={16} color={theme.ink} /></Pressable>
+          <View style={[styles.avatarRing, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'surface') }]}><View style={[styles.avatar, { backgroundColor: resolvePresentationColor(theme.ink, 'backgroundColor', 'content') }]}><ProfileAvatarImage source={preview} label="edit-profile-avatar" cacheKey={`edit-profile-avatar:${user.id}`} style={StyleSheet.absoluteFill} fallbackIconSize={48} /></View></View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Edit profile photo" hitSlop={8} onPress={showPhotoActions} style={({ pressed }) => [styles.avatarCamera, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'control'), borderColor: resolvePresentationColor(theme.canvas, 'borderColor', 'control') }, pressed && styles.cameraPressed]}><Ionicons name="camera-outline" size={16} color={resolvePresentationColor(theme.ink, 'color', 'content')} /></Pressable>
         </View>
       </View>
-      <View style={[styles.form, { backgroundColor: theme.glassStrong, borderColor: theme.border }]}>{fields.map((field, index) => <View key={field.key}><Pressable accessibilityRole="button" onPress={() => setActiveField(field.key)} style={({ pressed }) => [styles.field, index > 0 && { borderTopColor: theme.divider, borderTopWidth: StyleSheet.hairlineWidth }, pressed && styles.rowPressed]}><Text style={[styles.label, { color: theme.muted }]}>{field.label}</Text><Text numberOfLines={1} style={[styles.fieldValue, { color: theme.ink }]}>{field.value}</Text>{field.key === 'username' && checkingUsername ? <ActivityIndicator size="small" color={theme.muted} /> : <Ionicons name="chevron-forward" size={17} color={theme.subtle} />}</Pressable>{errors[field.key] ? <Text style={[styles.fieldError, { color: theme.danger }]}>{errors[field.key]}</Text> : null}</View>)}</View>
-      <Pressable accessibilityRole="button" onPress={() => setActiveField('bio')} style={({ pressed }) => [styles.bioCard, { backgroundColor: theme.glassStrong, borderColor: theme.border }, pressed && styles.rowPressed]}><View style={styles.readOnlyCopy}><Text style={[styles.cardLabel, { color: theme.muted }]}>Bio</Text><Text numberOfLines={2} style={[styles.readOnlyValue, { color: bio ? theme.ink : theme.subtle }]}>{bio || 'Optional'}</Text></View><Ionicons name="chevron-forward" size={17} color={theme.subtle} /></Pressable>
-      {errors.bio ? <Text style={[styles.cardError, { color: theme.danger }]}>{errors.bio}</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => setActiveField('location')} style={({ pressed }) => [styles.locationCard, { backgroundColor: theme.glassStrong, borderColor: theme.border }, pressed && styles.rowPressed]}><Ionicons name="location-outline" size={20} color={theme.muted} /><View style={styles.locationContent}><Text style={[styles.locationLabel, { color: theme.muted }]}>Location</Text><Text numberOfLines={1} style={[styles.locationValue, { color: location ? theme.ink : theme.subtle }]}>{location || 'Optional'}</Text></View><Ionicons name="chevron-forward" size={17} color={theme.subtle} /></Pressable>
-      {errors.location ? <Text style={[styles.cardError, { color: theme.danger }]}>{errors.location}</Text> : null}
-      {errors.form ? <Text style={[styles.formError, { color: theme.danger }]}>{errors.form}</Text> : null}
+      <View style={[styles.form, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'content'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'content') }]}>{fields.map((field, index) => <View key={field.key}><Pressable accessibilityRole="button" onPress={() => setActiveField(field.key)} style={({ pressed }) => [styles.field, index > 0 && { borderTopColor: resolvePresentationColor(theme.divider, 'borderTopColor', 'control'), borderTopWidth: StyleSheet.hairlineWidth }, pressed && styles.rowPressed]}><Text style={presentationTextStyle([styles.label, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{field.label}</Text><Text numberOfLines={1} style={presentationTextStyle([styles.fieldValue, { color: resolvePresentationColor(theme.ink, 'color', 'control') }])}>{field.value}</Text>{field.key === 'username' && checkingUsername ? <ActivityIndicator size="small" color={resolvePresentationColor(theme.muted, 'color', 'content')} /> : <Ionicons name="chevron-forward" size={17} color={resolvePresentationColor(theme.subtle, 'color', 'content')} />}</Pressable>{errors[field.key] ? <Text style={presentationTextStyle([styles.fieldError, { color: resolvePresentationColor(theme.danger, 'color', 'control') }])}>{errors[field.key]}</Text> : null}</View>)}</View>
+      <Pressable accessibilityRole="button" onPress={() => setActiveField('bio')} style={({ pressed }) => [styles.bioCard, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'surface'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'surface') }, pressed && styles.rowPressed]}><View style={styles.readOnlyCopy}><Text style={presentationTextStyle([styles.cardLabel, { color: resolvePresentationColor(theme.muted, 'color', 'surface') }])}>Bio</Text><Text numberOfLines={2} style={presentationTextStyle([styles.readOnlyValue, { color: resolvePresentationColor(bio ? theme.ink : theme.subtle, 'color', 'content') }])}>{bio || 'Optional'}</Text></View><Ionicons name="chevron-forward" size={17} color={resolvePresentationColor(theme.subtle, 'color', 'content')} /></Pressable>
+      {errors.bio ? <Text style={presentationTextStyle([styles.cardError, { color: resolvePresentationColor(theme.danger, 'color', 'surface') }])}>{errors.bio}</Text> : null}
+      <Pressable accessibilityRole="button" onPress={() => setActiveField('location')} style={({ pressed }) => [styles.locationCard, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'surface'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'surface') }, pressed && styles.rowPressed]}><Ionicons name="location-outline" size={20} color={resolvePresentationColor(theme.muted, 'color', 'content')} /><View style={styles.locationContent}><Text style={presentationTextStyle([styles.locationLabel, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>Location</Text><Text numberOfLines={1} style={presentationTextStyle([styles.locationValue, { color: resolvePresentationColor(location ? theme.ink : theme.subtle, 'color', 'content') }])}>{location || 'Optional'}</Text></View><Ionicons name="chevron-forward" size={17} color={resolvePresentationColor(theme.subtle, 'color', 'content')} /></Pressable>
+      {errors.location ? <Text style={presentationTextStyle([styles.cardError, { color: resolvePresentationColor(theme.danger, 'color', 'surface') }])}>{errors.location}</Text> : null}
+      {errors.form ? <Text style={presentationTextStyle([styles.formError, { color: resolvePresentationColor(theme.danger, 'color', 'content') }])}>{errors.form}</Text> : null}
     </ScrollView>
     <ProfileFieldEditor field={activeField} value={activeDraft} visible={activeField !== null} onCancel={() => setActiveField(null)} onConfirm={updateDraft} />
   </KeyboardAvoidingView></SafeAreaView>;
@@ -220,3 +222,4 @@ const styles = StyleSheet.create({
   cardError: { marginHorizontal: 34, marginTop: 6, fontFamily: systemFont, fontSize: 11, lineHeight: 15 },
   formError: { marginHorizontal: 24, marginTop: 14, fontFamily: systemFont, fontSize: 12, lineHeight: 16, textAlign: 'center' },
 });
+const presentationBaselineStyles = styles;

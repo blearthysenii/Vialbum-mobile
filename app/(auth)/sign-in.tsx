@@ -1,3 +1,4 @@
+import { resolvePresentationColor, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -235,40 +236,40 @@ export default function SignInScreen() {
               <AuthVortexMark authColors={authColors} isDark={isDark} />
             </Animated.View>
             <Animated.View shouldRasterizeIOS={false} style={titleAnimation}>
-              <Text style={styles.title}>Sign in to Vialbum</Text>
+              <Text style={presentationTextStyle(styles.title)}>Sign in to Vialbum</Text>
             </Animated.View>
           </View>
 
-          {isRestoring ? <ActivityIndicator style={styles.feedback} color={authColors.body} accessibilityLabel="Loading saved accounts" /> : null}
+          {isRestoring ? <ActivityIndicator style={styles.feedback} color={resolvePresentationColor(authColors.body, 'color', 'content')} accessibilityLabel="Loading saved accounts" /> : null}
           {savedAccountsError ? <View style={styles.feedback}>
             <ErrorBanner message={savedAccountsError} style={styles.errorBanner} textStyle={styles.errorText} />
-            <Pressable accessibilityRole="button" onPress={() => void reloadSavedAccounts()} style={styles.accountAction}><Text style={styles.link}>Try again</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => void reloadSavedAccounts()} style={styles.accountAction}><Text style={presentationTextStyle(styles.link)}>Try again</Text></Pressable>
           </View> : null}
           {!showForm && !isRestoring ? <View style={styles.feedback}>
             {savedAccounts.length ? savedAccounts.map((account) => <View key={account.id} style={styles.accountCard}>
               <Pressable accessibilityRole="button" accessibilityLabel={`Continue as ${account.username}`} disabled={Boolean(accountBusy)}
                 onPress={() => void openAccount(account.id, account.email)} style={styles.accountIdentity}>
                 <View style={styles.avatar}>
-                  <Ionicons name="person" size={24} color={authColors.body} />
+                  <Ionicons name="person" size={24} color={resolvePresentationColor(authColors.body, 'color', 'content')} />
                   {account.profile_photo_url ? <Image source={{ uri: account.profile_photo_url }} style={StyleSheet.absoluteFill} /> : null}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.accountName}>{[account.first_name, account.last_name].filter(Boolean).join(' ') || account.username}</Text>
-                  <Text style={styles.footerText} numberOfLines={1}>@{account.username}</Text>
-                  <Text style={styles.footerText} numberOfLines={1}>{account.email}</Text>
+                  <Text style={presentationTextStyle(styles.accountName)}>{[account.first_name, account.last_name].filter(Boolean).join(' ') || account.username}</Text>
+                  <Text style={presentationTextStyle(styles.footerText)} numberOfLines={1}>@{account.username}</Text>
+                  <Text style={presentationTextStyle(styles.footerText)} numberOfLines={1}>{account.email}</Text>
                 </View>
-                {accountBusy === account.id ? <ActivityIndicator color={authColors.body} /> : <Ionicons name="chevron-forward" size={18} color={authColors.body} />}
+                {accountBusy === account.id ? <ActivityIndicator color={resolvePresentationColor(authColors.body, 'color', 'content')} /> : <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor(authColors.body, 'color', 'content')} />}
               </Pressable>
               <View style={styles.accountActions}>
-                <Pressable accessibilityRole="button" disabled={Boolean(accountBusy)} onPress={() => selectPassword(account.email)} style={styles.accountAction}><Text style={styles.link}>Use password</Text></Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${account.username} from this device`} disabled={Boolean(accountBusy)} onPress={() => confirmRemove(account.id)} style={styles.accountAction}><Text style={styles.link}>Remove</Text></Pressable>
+                <Pressable accessibilityRole="button" disabled={Boolean(accountBusy)} onPress={() => selectPassword(account.email)} style={styles.accountAction}><Text style={presentationTextStyle(styles.link)}>Use password</Text></Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${account.username} from this device`} disabled={Boolean(accountBusy)} onPress={() => confirmRemove(account.id)} style={styles.accountAction}><Text style={presentationTextStyle(styles.link)}>Remove</Text></Pressable>
               </View>
-            </View>) : <Text style={styles.footerText}>No saved accounts on this device.</Text>}
-            {savedAccounts.length ? <Pressable accessibilityRole="button" disabled={Boolean(accountBusy)} onPress={() => { setError(null); setShowForm(true); }} style={styles.accountAction}><Text style={styles.link}>Use another account</Text></Pressable> : null}
+            </View>) : <Text style={presentationTextStyle(styles.footerText)}>No saved accounts on this device.</Text>}
+            {savedAccounts.length ? <Pressable accessibilityRole="button" disabled={Boolean(accountBusy)} onPress={() => { setError(null); setShowForm(true); }} style={styles.accountAction}><Text style={presentationTextStyle(styles.link)}>Use another account</Text></Pressable> : null}
           </View> : null}
           {showForm || (!isRestoring && !savedAccounts.length) ? <>
           <Animated.View shouldRasterizeIOS={false} style={[styles.formCard, formAnimation]}>
-            <BlurView pointerEvents="none" tint={isDark ? 'dark' : 'light'} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
+            <BlurView pointerEvents="none" tint={presentationBlurTint(isDark ? 'dark' : 'light')} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
             <View style={styles.inputRow}>
               <TextInput
                 accessibilityLabel="Email or username"
@@ -280,11 +281,11 @@ export default function SignInScreen() {
                 onSubmitEditing={() => step === 'email' ? void continueWithIdentifier() : passwordRef.current?.focus()}
                 placeholder="Email or username"
                 keyboardAppearance={isDark ? 'dark' : 'light'}
-                placeholderTextColor={authColors.placeholder}
+                placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')}
                 returnKeyType="next"
                 textContentType="username"
                 value={identifier}
-                style={styles.input}
+                style={presentationTextStyle(styles.input)}
               />
               {step === 'email' ? (
                 <Pressable
@@ -297,10 +298,10 @@ export default function SignInScreen() {
                   style={({ pressed }) => [styles.submit, pressed && styles.submitPressed, isSubmitting && styles.submitDisabled]}
                 >
                   {isSubmitting
-                    ? <ActivityIndicator size="small" color={authColors.controlIcon} />
-                    : <Ionicons name="arrow-forward" size={18} color={authColors.controlIcon} />}
+                    ? <ActivityIndicator size="small" color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} />
+                    : <Ionicons name="arrow-forward" size={18} color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} />}
                 </Pressable>
-              ) : <Ionicons accessibilityLabel="Email found" name="checkmark-circle" size={22} color={authColors.success} />}
+              ) : <Ionicons accessibilityLabel="Email found" name="checkmark-circle" size={22} color={resolvePresentationColor(authColors.success, 'color', 'content')} />}
             </View>
             {step === 'password' ? (
               <Animated.View style={[styles.passwordStep, passwordAnimation]}>
@@ -317,16 +318,16 @@ export default function SignInScreen() {
                     onSubmitEditing={() => void submit()}
                     placeholder="Password"
                     keyboardAppearance={isDark ? 'dark' : 'light'}
-                    placeholderTextColor={authColors.placeholder}
+                    placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')}
                     returnKeyType="go"
                     secureTextEntry={!isPasswordVisible}
                     spellCheck={false}
                     textContentType="password"
                     value={password}
-                    style={styles.input}
+                    style={presentationTextStyle(styles.input)}
                   />
                   <PasswordVisibilityToggle
-                    color={authColors.controlIcon}
+                    color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')}
                     isVisible={isPasswordVisible}
                     onToggle={() => setIsPasswordVisible((current) => !current)}
                   />
@@ -340,26 +341,26 @@ export default function SignInScreen() {
                     style={({ pressed }) => [styles.submit, pressed && styles.submitPressed, isSubmitting && styles.submitDisabled]}
                   >
                     {isSubmitting
-                      ? <ActivityIndicator size="small" color={authColors.controlIcon} />
-                      : <Ionicons name="arrow-forward" size={18} color={authColors.controlIcon} />}
+                      ? <ActivityIndicator size="small" color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} />
+                      : <Ionicons name="arrow-forward" size={18} color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} />}
                   </Pressable>
                 </View>
               </Animated.View>
             ) : null}
           </Animated.View>
 
-          {showForm && savedAccounts.length ? <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => { updateIdentifier(''); setPassword(''); setShowForm(false); }} style={styles.accountAction}><Text style={styles.link}>Saved accounts</Text></Pressable> : null}
+          {showForm && savedAccounts.length ? <Pressable accessibilityRole="button" disabled={isSubmitting} onPress={() => { updateIdentifier(''); setPassword(''); setShowForm(false); }} style={styles.accountAction}><Text style={presentationTextStyle(styles.link)}>Saved accounts</Text></Pressable> : null}
           </> : null}
 
           {isAccountMissing ? (
             <View accessibilityRole="alert" style={[styles.errorBanner, styles.unregisteredBanner]}>
-              <Text style={styles.errorText}>No account found with this email or username.</Text>
+              <Text style={presentationTextStyle(styles.errorText)}>No account found with this email or username.</Text>
             </View>
           ) : null}
           {error ? <View style={styles.feedback}><ErrorBanner message={error} style={styles.errorBanner} textStyle={styles.errorText} /></View> : null}
 
           <Animated.View shouldRasterizeIOS={false} style={[styles.footer, footerAnimation]}>
-            <Text style={styles.footerText}>New to Vialbum?</Text>
+            <Text style={presentationTextStyle(styles.footerText)}>New to Vialbum?</Text>
             <Link href="/sign-up" asChild>
               <Pressable
                 hitSlop={10}
@@ -367,7 +368,7 @@ export default function SignInScreen() {
                 style={({ pressed }) => [styles.linkButton, pressed && styles.linkButtonPressed]}
               >
                 {({ pressed }) => (
-                  <Text style={[styles.link, pressed && styles.linkPressed]}>Create an account</Text>
+                  <Text style={presentationTextStyle([styles.link, pressed && styles.linkPressed])}>Create an account</Text>
                 )}
               </Pressable>
             </Link>

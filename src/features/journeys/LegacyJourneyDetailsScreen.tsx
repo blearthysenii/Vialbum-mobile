@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -46,6 +47,8 @@ function GlassActionButton({
   disabled?: boolean;
   destructive?: boolean;
 }>) {
+  const timelineStyles = usePresentationStyles(presentationTimelineStyles);
+
   const pressProgress = useRef(new Animated.Value(1)).current;
   const animatePress = (toValue: number) => Animated.timing(pressProgress, {
     toValue,
@@ -65,14 +68,16 @@ function GlassActionButton({
       onPressOut={() => animatePress(1)}
       style={[timelineStyles.glassButton, disabled && timelineStyles.glassButtonDisabled]}
     >
-      <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+      <BlurView pointerEvents="none" intensity={38} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={timelineStyles.glassButtonTint} />
-      <Text style={[timelineStyles.glassButtonLabel, destructive && timelineStyles.glassButtonDanger]}>{children}</Text>
+      <Text style={presentationTextStyle([timelineStyles.glassButtonLabel, destructive && timelineStyles.glassButtonDanger])}>{children}</Text>
     </Pressable>
   </Animated.View>;
 }
 
 function AnimatedPhotoCard({ photo, onPress }: { photo: JourneyMedia; onPress: () => void }) {
+  const timelineStyles = usePresentationStyles(presentationTimelineStyles);
+
   const pressScale = useRef(new Animated.Value(1)).current;
   const animatePress = (toValue: number) => Animated.timing(pressScale, {
     toValue,
@@ -98,8 +103,8 @@ function AnimatedPhotoCard({ photo, onPress }: { photo: JourneyMedia; onPress: (
         recyclingKey={photo.id}
         transition={180}
       />
-      {photo.caption ? <BlurView intensity={42} tint="systemThinMaterialDark" style={timelineStyles.photoCaptionOverlay}>
-        <Text numberOfLines={2} style={timelineStyles.photoCaptionText}>{photo.caption}</Text>
+      {photo.caption ? <BlurView intensity={42} tint={presentationBlurTint("systemThinMaterialDark")} style={timelineStyles.photoCaptionOverlay}>
+        <Text numberOfLines={2} style={presentationTextStyle(timelineStyles.photoCaptionText)}>{photo.caption}</Text>
       </BlurView> : null}
     </Pressable>
   </Animated.View>;
@@ -107,6 +112,10 @@ function AnimatedPhotoCard({ photo, onPress }: { photo: JourneyMedia; onPress: (
 
 // Retained outside the router; normal Journey entry now uses Post Detail.
 export default function JourneyDetailsScreen() {
+  const timelineStyles = usePresentationStyles(presentationTimelineStyles);
+
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const { id, memoryId } = useLocalSearchParams<{ id: string; memoryId?: string }>();
   const preparedDetails = useRef(readPreparedJourneyDetails(id)).current;
   const listRef = useRef<SectionList<TimelineItem, TimelineSection>>(null);
@@ -435,23 +444,23 @@ export default function JourneyDetailsScreen() {
         style={timelineStyles.memoryShell}
       >
         <View style={[timelineStyles.memory, item.id === memoryId && timelineStyles.memorySelected]}>
-          <BlurView pointerEvents="none" intensity={42} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+          <BlurView pointerEvents="none" intensity={42} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
           <View pointerEvents="none" style={timelineStyles.memoryGlassTint} />
           <View pointerEvents="none" style={timelineStyles.memoryTopHighlight} />
-          <BlurView intensity={36} tint="systemUltraThinMaterialLight" style={timelineStyles.memoryBadge}>
-            <Ionicons name="book-outline" size={17} color={colors.accent} />
-            <Text style={timelineStyles.memoryBadgeText}>Memory</Text>
+          <BlurView intensity={36} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={timelineStyles.memoryBadge}>
+            <Ionicons name="book-outline" size={17} color={resolvePresentationColor(colors.accent, 'color', 'content')} />
+            <Text style={presentationTextStyle(timelineStyles.memoryBadgeText)}>Memory</Text>
           </BlurView>
-          <Text style={timelineStyles.title}>{item.memory.title}</Text>
-          {item.memory.caption ? <Text style={timelineStyles.caption}>{item.memory.caption}</Text> : null}
-          {itemLocation ? <BlurView intensity={38} tint="systemUltraThinMaterialLight" style={timelineStyles.memoryLocation}>
-            <Ionicons name="location" size={17} color={colors.muted} />
-            <Text numberOfLines={1} style={timelineStyles.memoryLocationText}>{itemLocation}</Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          <Text style={presentationTextStyle(timelineStyles.title)}>{item.memory.title}</Text>
+          {item.memory.caption ? <Text style={presentationTextStyle(timelineStyles.caption)}>{item.memory.caption}</Text> : null}
+          {itemLocation ? <BlurView intensity={38} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={timelineStyles.memoryLocation}>
+            <Ionicons name="location" size={17} color={resolvePresentationColor(colors.muted, 'color', 'content')} />
+            <Text numberOfLines={1} style={presentationTextStyle(timelineStyles.memoryLocationText)}>{itemLocation}</Text>
+            <Ionicons name="chevron-forward" size={16} color={resolvePresentationColor(colors.muted, 'color', 'content')} />
           </BlurView> : null}
-          <BlurView intensity={36} tint="systemUltraThinMaterialLight" style={timelineStyles.memoryEdit}>
-            <Ionicons name="pencil-outline" size={16} color={colors.accent} />
-            <Text style={timelineStyles.edit}>View memory</Text>
+          <BlurView intensity={36} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={timelineStyles.memoryEdit}>
+            <Ionicons name="pencil-outline" size={16} color={resolvePresentationColor(colors.accent, 'color', 'content')} />
+            <Text style={presentationTextStyle(timelineStyles.edit)}>View memory</Text>
           </BlurView>
         </View>
       </Pressable>;
@@ -498,7 +507,7 @@ export default function JourneyDetailsScreen() {
         onLoad={() => setCoverLoaded(true)}
         onError={() => setCoverLoaded(true)}
       />
-      <BlurView intensity={48} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={48} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
       <View style={styles.timelineBackdropWash} />
     </View> : null}
     <Animated.View pointerEvents={coverLoaded ? 'auto' : 'none'} style={[styles.content, { opacity: contentOpacity }]}>
@@ -517,8 +526,8 @@ export default function JourneyDetailsScreen() {
       scrollEventThrottle={16}
       showsVerticalScrollIndicator={false}
       renderSectionHeader={({ section }) => <View style={timelineStyles.day}>
-        <Text style={timelineStyles.dayTitle}>Day {section.day}</Text>
-        <Text style={timelineStyles.dayDate}>{formatCalendarDate(section.date)}</Text>
+        <Text style={presentationTextStyle(timelineStyles.dayTitle)}>Day {section.day}</Text>
+        <Text style={presentationTextStyle(timelineStyles.dayDate)}>{formatCalendarDate(section.date)}</Text>
       </View>}
       renderSectionFooter={({ section }) => renderPhotoCarousel(section)}
       ListHeaderComponent={<>
@@ -537,10 +546,10 @@ export default function JourneyDetailsScreen() {
           <View style={styles.coverShade} />
           <SafeAreaView style={styles.coverSafe} edges={['top']}>
             <View>
-              <Text style={styles.country}>{journey.country.toUpperCase()}</Text>
-              <Text style={styles.title}>{journey.title}</Text>
-              <Text style={styles.destination}>{location}</Text>
-              <Text style={styles.dates}>{formatDateRange(journey.start_date, journey.end_date)} · {summary?.durationDays} {summary?.durationDays === 1 ? 'day' : 'days'}</Text>
+              <Text style={presentationTextStyle(styles.country)}>{journey.country.toUpperCase()}</Text>
+              <Text style={presentationTextStyle(styles.title)}>{journey.title}</Text>
+              <Text style={presentationTextStyle(styles.destination)}>{location}</Text>
+              <Text style={presentationTextStyle(styles.dates)}>{formatDateRange(journey.start_date, journey.end_date)} · {summary?.durationDays} {summary?.durationDays === 1 ? 'day' : 'days'}</Text>
             </View>
           </SafeAreaView>
         </View>
@@ -549,12 +558,12 @@ export default function JourneyDetailsScreen() {
             <BlurView
               pointerEvents="none"
               intensity={34}
-              tint="systemUltraThinMaterialLight"
+              tint={presentationBlurTint("systemUltraThinMaterialLight")}
               style={timelineStyles.headerTopBlur}
             />
             <LinearGradient
               pointerEvents="none"
-              colors={[
+              colors={resolvePresentationColor([
                 'rgba(255,255,255,0.54)',
                 'rgba(255,255,255,0.46)',
                 'rgba(255,255,255,0.34)',
@@ -562,11 +571,11 @@ export default function JourneyDetailsScreen() {
                 'rgba(255,255,255,0.12)',
                 'rgba(255,255,255,0.05)',
                 'rgba(255,255,255,0.00)',
-              ]}
+              ], 'colors', 'content')}
               locations={[0, 0.14, 0.30, 0.48, 0.66, 0.84, 1]}
               style={StyleSheet.absoluteFill}
             />
-            {journey.description ? <Text style={styles.description}>{journey.description}</Text> : null}
+            {journey.description ? <Text style={presentationTextStyle(styles.description)}>{journey.description}</Text> : null}
             {summary ? <JourneyStats summary={summary} glass animate={entranceReady} reduceMotion={Boolean(reduceMotion)} /> : null}
             <Animated.View style={{ opacity: storyOpacity, transform: [{ translateY: storyTranslateY }] }}>
             </Animated.View>
@@ -579,8 +588,8 @@ export default function JourneyDetailsScreen() {
 
               <View style={timelineStyles.momentsSection}>
               <View style={timelineStyles.momentsHeading}>
-                <Text style={styles.section}>Memories & Photos</Text>
-                <Text style={timelineStyles.momentsSubtitle}>
+                <Text style={presentationTextStyle(styles.section)}>Memories & Photos</Text>
+                <Text style={presentationTextStyle(timelineStyles.momentsSubtitle)}>
                   Build your journey one moment at a time.
                 </Text>
               </View>
@@ -596,35 +605,35 @@ export default function JourneyDetailsScreen() {
                   loading && timelineStyles.actionCardDisabled,
                 ]}
               >
-                <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+                <BlurView pointerEvents="none" intensity={38} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
                 <View pointerEvents="none" style={timelineStyles.actionCardTint} />
-                <BlurView style={timelineStyles.actionIcon} intensity={36} tint="systemUltraThinMaterialLight">
-                  <Ionicons name="book-outline" size={22} color="#111111" />
+                <BlurView style={timelineStyles.actionIcon} intensity={36} tint={presentationBlurTint("systemUltraThinMaterialLight")}>
+                  <Ionicons name="book-outline" size={22} color={resolvePresentationColor("#111111", 'color', 'content')} />
                 </BlurView>
 
                 <View style={timelineStyles.actionCopy}>
-                  <Text style={timelineStyles.actionTitle}>Add Memory</Text>
-                  <Text style={timelineStyles.actionSubtitle}>
+                  <Text style={presentationTextStyle(timelineStyles.actionTitle)}>Add Memory</Text>
+                  <Text style={presentationTextStyle(timelineStyles.actionSubtitle)}>
                     Write down a story, thought, or special moment.
                   </Text>
                 </View>
 
                 <View style={timelineStyles.actionChevron}>
-                  <Ionicons name="chevron-forward" size={18} color="#8E8E93" />
+                  <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor("#8E8E93", 'color', 'content')} />
                 </View>
               </Pressable>
 
               <View style={timelineStyles.photosCard}>
-                <BlurView pointerEvents="none" intensity={38} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+                <BlurView pointerEvents="none" intensity={38} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
                 <View pointerEvents="none" style={timelineStyles.actionCardTint} />
                 <View style={timelineStyles.photosIntro}>
-                  <BlurView style={timelineStyles.actionIcon} intensity={36} tint="systemUltraThinMaterialLight">
-                    <Ionicons name="images-outline" size={22} color="#111111" />
+                  <BlurView style={timelineStyles.actionIcon} intensity={36} tint={presentationBlurTint("systemUltraThinMaterialLight")}>
+                    <Ionicons name="images-outline" size={22} color={resolvePresentationColor("#111111", 'color', 'content')} />
                   </BlurView>
 
                   <View style={timelineStyles.actionCopy}>
-                    <Text style={timelineStyles.actionTitle}>Photos</Text>
-                    <Text style={timelineStyles.actionSubtitle}>
+                    <Text style={presentationTextStyle(timelineStyles.actionTitle)}>Photos</Text>
+                    <Text style={presentationTextStyle(timelineStyles.actionSubtitle)}>
                       Add the photos that make this journey yours.
                     </Text>
                   </View>
@@ -663,16 +672,16 @@ export default function JourneyDetailsScreen() {
       <Animated.View pointerEvents="box-none" style={[styles.nav, { transform: [{ translateY: floatingNavY }] }]}>
         <Animated.View style={{ transform: [{ scale: backPressScale }] }}>
           <Pressable accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8} onPress={() => router.back()} onPressIn={() => animateControlPress(backPressScale, true)} onPressOut={() => animateControlPress(backPressScale, false)} style={styles.glassBack}>
-            <BlurView pointerEvents="none" intensity={40} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+            <BlurView pointerEvents="none" intensity={40} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
             <View pointerEvents="none" style={styles.editGlassTint} />
-            <Ionicons name="chevron-back" size={25} color={colors.ink} />
+            <Ionicons name="chevron-back" size={25} color={resolvePresentationColor(colors.ink, 'color', 'content')} />
           </Pressable>
         </Animated.View>
         <Animated.View style={{ transform: [{ scale: editPressScale }] }}>
           <Pressable accessibilityRole="button" accessibilityLabel="Edit journey" onPress={() => router.push({ pathname: '/journey/edit/[id]', params: { id } })} onPressIn={() => animateControlPress(editPressScale, true)} onPressOut={() => animateControlPress(editPressScale, false)} style={styles.edit}>
-            <BlurView pointerEvents="none" intensity={40} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+            <BlurView pointerEvents="none" intensity={40} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
             <View pointerEvents="none" style={styles.editGlassTint} />
-            <Text style={styles.editText}>Edit</Text>
+            <Text style={presentationTextStyle(styles.editText)}>Edit</Text>
           </Pressable>
         </Animated.View>
       </Animated.View>
@@ -723,6 +732,7 @@ const styles = StyleSheet.create({
   rule: { height: 1, backgroundColor: colors.line, marginVertical: spacing.sm },
   section: { ...typography.sectionTitle, color: colors.ink },
 });
+const presentationBaselineStyles = styles;
 
 const timelineStyles = StyleSheet.create({
   glassButton: { minHeight: 50, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.46)' },
@@ -848,3 +858,5 @@ const timelineStyles = StyleSheet.create({
   addPhotosButton: { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 20 },
   footer: { paddingHorizontal: spacing.lg, paddingBottom: 60, paddingTop: spacing.xl },
 });
+
+const presentationTimelineStyles = timelineStyles;

@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -48,6 +49,8 @@ export function ProfileFieldEditor({
   onCancel: () => void;
   onConfirm: (field: ProfileFieldKey, value: string) => void;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles, 'surface');
+
   const theme = useProfileTheme();
   const [draft, setDraft] = useState(value);
   const [error, setError] = useState<string | null>(null);
@@ -80,18 +83,18 @@ export function ProfileFieldEditor({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={requestClose}>
       <SafeAreaProvider>
-      <SafeAreaView style={[styles.safe, { backgroundColor: theme.canvas }]}>
+      <SafeAreaView style={[styles.safe, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'surface') }]}>
         <View style={styles.header}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={6} onPress={requestClose} style={({ pressed }) => [styles.headerButton, styles.backButton, { backgroundColor: theme.glassStrong, borderColor: theme.border }, pressed && styles.pressed]}>
-            <Ionicons name="chevron-back" size={25} color={theme.ink} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={6} onPress={requestClose} style={({ pressed }) => [styles.headerButton, styles.backButton, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'control'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'control') }, pressed && styles.pressed]}>
+            <Ionicons name="chevron-back" size={25} color={resolvePresentationColor(theme.ink, 'color', 'content')} />
           </Pressable>
-          <Text style={[styles.title, { color: theme.ink }]}>{config.title}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Save ${config.title}`} hitSlop={6} onPress={confirm} style={({ pressed }) => [styles.headerButton, styles.confirmButton, { backgroundColor: theme.glassStrong, borderColor: theme.border }, pressed && styles.pressed]}>
-            <Ionicons name="checkmark" size={26} color={theme.accent} />
+          <Text style={presentationTextStyle([styles.title, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{config.title}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Save ${config.title}`} hitSlop={6} onPress={confirm} style={({ pressed }) => [styles.headerButton, styles.confirmButton, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'control'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'control') }, pressed && styles.pressed]}>
+            <Ionicons name="checkmark" size={26} color={resolvePresentationColor(theme.accent, 'color', 'content')} />
           </Pressable>
         </View>
         <KeyboardAvoidingView style={styles.body} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <View style={[styles.inputShell, config.multiline && styles.bioShell, { backgroundColor: theme.glassStrong, borderColor: error ? theme.danger : theme.border }]}>
+          <View style={[styles.inputShell, config.multiline && styles.bioShell, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'control'), borderColor: resolvePresentationColor(error ? theme.danger : theme.border, 'borderColor', 'control') }]}>
             <TextInput
               autoFocus
               value={draft}
@@ -101,16 +104,16 @@ export function ProfileFieldEditor({
               autoCapitalize={field === 'username' ? 'none' : field === 'bio' ? 'sentences' : 'words'}
               autoCorrect={field !== 'username'}
               placeholder={config.placeholder}
-              placeholderTextColor={theme.subtle}
+              placeholderTextColor={resolvePresentationColor(theme.subtle, 'placeholderTextColor', 'control')}
               returnKeyType={config.multiline ? 'default' : 'done'}
               onSubmitEditing={config.multiline ? undefined : confirm}
-              style={[styles.input, config.multiline && styles.bioInput, { color: theme.ink }]}
-              textAlignVertical={config.multiline ? 'top' : 'center'}
+              style={presentationTextStyle([styles.input, config.multiline && styles.bioInput, { color: resolvePresentationColor(theme.ink, 'color', 'control') }])}
+              textAlignVertical={config.multiline ? 'top' : 'center'} keyboardAppearance={presentationInterfaceStyle()}
             />
-            {draft ? <Pressable accessibilityRole="button" accessibilityLabel={`Clear ${config.title}`} hitSlop={8} onPress={() => { setDraft(''); setError(null); }} style={({ pressed }) => [styles.clearButton, config.multiline && styles.bioClear, pressed && styles.pressed]}><Ionicons name="close-circle" size={20} color={theme.muted} /></Pressable> : null}
-            {config.multiline ? <Text style={[styles.counter, { color: draft.length >= 140 ? theme.danger : theme.muted }]}>{draft.length}/150</Text> : null}
+            {draft ? <Pressable accessibilityRole="button" accessibilityLabel={`Clear ${config.title}`} hitSlop={8} onPress={() => { setDraft(''); setError(null); }} style={({ pressed }) => [styles.clearButton, config.multiline && styles.bioClear, pressed && styles.pressed]}><Ionicons name="close-circle" size={20} color={resolvePresentationColor(theme.muted, 'color', 'content')} /></Pressable> : null}
+            {config.multiline ? <Text style={presentationTextStyle([styles.counter, { color: resolvePresentationColor(draft.length >= 140 ? theme.danger : theme.muted, 'color', 'content') }])}>{draft.length}/150</Text> : null}
           </View>
-          {error ? <Text accessibilityRole="alert" style={[styles.error, { color: theme.danger }]}>{error}</Text> : null}
+          {error ? <Text accessibilityRole="alert" style={presentationTextStyle([styles.error, { color: resolvePresentationColor(theme.danger, 'color', 'content') }])}>{error}</Text> : null}
         </KeyboardAvoidingView>
       </SafeAreaView>
       </SafeAreaProvider>
@@ -136,3 +139,4 @@ const styles = StyleSheet.create({
   error: { marginTop: 8, marginHorizontal: 4, fontFamily: systemFont, fontSize: 12, lineHeight: 17 },
   pressed: { opacity: 0.5, transform: [{ scale: 0.96 }] },
 });
+const presentationBaselineStyles = styles;

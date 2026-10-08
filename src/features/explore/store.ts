@@ -1,46 +1,54 @@
 import type { Category, SearchResults } from './api';
 
 export const SEARCH_DELAY = 350;
-export type SearchState = { query: string; results: SearchResults | null; loading: boolean; more: Category | null; error: string | null };
+export type SearchState = { revision: number; query: string; category: Category | 'all'; results: SearchResults | null; loading: boolean; more: Category | null; error: string | null };
 export function createExploreStore(fetcher: (q: string, type: Category | 'all', cursor: string | null, signal: AbortSignal) => Promise<SearchResults>) {
-  let state: SearchState = { query: '', results: null, loading: false, more: null, error: null };
+  let state: SearchState = { revision: 0, query: '', category: 'all', results: null, loading: false, more: null, error: null };
   let version = 0;
+  let suspended = false;
   let controller: AbortController | null = null;
   let timer: ReturnType<typeof setTimeout> | null = null;
   const listeners = new Set<() => void>();
   const publish = (patch: Partial<SearchState>) => { state = { ...state, ...patch }; listeners.forEach(fn => fn()); };
   const cancel = () => { version++; controller?.abort(); if (timer) clearTimeout(timer); timer = null; };
-  async function run(type: Category | 'all' = 'all') {
+  const valid = (query: string) => !query.trim() || query.trim().replace(/^@/, '').length >= 2 && query.length <= 100;
+  async function run(more: Category | null = null) {
     const q = state.query.trim().replace(/\s+/g, ' ');
-    if (q.replace(/^@/, '').length < 2 || q.length > 100) return;
-    if (type !== 'all' && (state.loading || state.more || !state.results?.[type].next_cursor)) return;
-    if (type === 'all') cancel();
-    const current = version;
+    if (suspended || !valid(q)) return;
+    if (more && (state.loading || state.more || !state.results?.[more]?.next_cursor || state.category !== 'all' && state.category !== more)) return;
+    if (!more) cancel();
+    const type = more ?? state.category, current = version;
     controller = new AbortController();
-    publish({ loading: type === 'all', more: type === 'all' ? null : type, error: null });
+    publish({ loading: !more, more, error: null });
     try {
-      const response = await fetcher(q, type, type === 'all' ? null : state.results![type].next_cursor, controller.signal);
+      const response = await fetcher(q, type, more ? state.results![more].next_cursor : null, controller.signal);
       if (version !== current) return;
-      if (type === 'all') publish({ results: response });
+      if (!more) publish({ results: response, revision: state.revision + 1 });
       else {
         const existing = state.results!;
-        const items = [...new Map([...existing[type].items, ...response[type].items].map(item => [item.id, item])).values()];
-        publish({ results: { ...existing, [type]: { items, next_cursor: response[type].next_cursor } } });
+        const items = [...new Map([...existing[more].items, ...response[more].items].map(item => [item.id, item])).values()];
+        publish({ results: { ...existing, [more]: { items, next_cursor: response[more].next_cursor } } });
       }
     } catch {
-      if (version === current) publish({ ...(type === 'all' ? { results: null } : {}), error: 'Search is unavailable. Check your connection and try again.' });
+      if (version === current) publish({ ...(!more ? { results: null } : {}), error: 'Search is unavailable. Check your connection and try again.' });
     } finally { if (version === current) publish({ loading: false, more: null }); }
   }
   return {
     getSnapshot: () => state,
     subscribe: (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; },
     setQuery(query: string) {
-      cancel();
-      publish({ query, results: null, error: null, loading: query.trim().replace(/^@/, '').length >= 2, more: null });
-      if (query.trim().replace(/^@/, '').length >= 2) timer = setTimeout(() => void run(), SEARCH_DELAY);
+      cancel(); publish({ query, results: null, error: null, loading: valid(query), more: null });
+      if (!query.trim()) void run();
+      else if (valid(query)) timer = setTimeout(() => void run(), SEARCH_DELAY);
     },
-    refresh: () => run(),
+    setCategory(category: Category | 'all') {
+      if (category === state.category) return;
+      cancel(); publish({ category, results: null, error: null, loading: valid(state.query), more: null });
+      void run();
+    },
+    refresh: () => { suspended = false; return run(); },
+    resume: () => { suspended = false; return state.results ? Promise.resolve() : run(); },
     loadMore: (type: Category) => run(type),
-    suspend() { cancel(); publish({ results: null, loading: false, more: null, error: null }); },
+    suspend(preserve = false) { suspended = true; cancel(); publish({ ...(!preserve ? { results: null } : {}), loading: false, more: null, error: null }); },
   };
 }

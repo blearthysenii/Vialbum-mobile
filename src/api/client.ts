@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { tokenStorage } from '@/features/auth/storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
@@ -45,6 +46,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const timeout = setTimeout(() => controller.abort(), 20000);
   const abort = () => controller.abort();
   options.signal?.addEventListener('abort', abort, { once: true });
+  if (options.signal?.aborted) controller.abort();
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {
@@ -80,13 +82,20 @@ export async function apiUpload<T>(
   file: UploadFile,
   fields: Record<string, string>,
   onProgress: (progress: number) => void,
+  options: { signal?: AbortSignal; timeoutMs?: number; mediaLabel?: string } = {},
 ): Promise<T> {
   if (!API_URL) throw new ApiError('The API URL is not configured.', 0);
+  if (options.signal?.aborted) throw new ApiError('Upload cancelled.', 0);
+  const label = options.mediaLabel ?? 'photo';
   const token = await tokenStorage.get();
   if (!token) throw new ApiError('Your session has expired. Please sign in again.', 401);
 
   const form = new FormData();
-  form.append('file', file as unknown as Blob);
+  if (Platform.OS === 'web') {
+    const response = await fetch(file.uri);
+    if (!response.ok) throw new ApiError(`This ${label} is no longer available. Please select it again.`, 0);
+    form.append('file', await response.blob(), file.name);
+  } else form.append('file', file as unknown as Blob);
   Object.entries(fields).forEach(([key, value]) => form.append(key, value));
 
   return new Promise<T>((resolve, reject) => {
@@ -97,9 +106,13 @@ export async function apiUpload<T>(
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
     };
-    request.onerror = () => reject(new ApiError('The photo upload lost its connection.', 0));
-    request.timeout = 120000;
-    request.ontimeout = () => reject(new ApiError('The photo upload timed out. Please try again.', 0));
+    request.onerror = () => reject(new ApiError(`The ${label} upload lost its connection.`, 0));
+    request.timeout = options.timeoutMs ?? 120000;
+    const abort = () => request.abort();
+    options.signal?.addEventListener('abort', abort, { once: true });
+    request.onloadend = () => options.signal?.removeEventListener('abort', abort);
+    request.onabort = () => reject(new ApiError('Upload cancelled.', 0));
+    request.ontimeout = () => reject(new ApiError(`The ${label} upload timed out. Please try again.`, 0));
     request.onload = () => {
       const payload = (() => {
         try { return JSON.parse(request.responseText); } catch { return null; }
@@ -113,8 +126,9 @@ export async function apiUpload<T>(
         void tokenStorage.remove();
         unauthorizedHandler?.();
       }
-      reject(new ApiError(typeof payload?.detail === 'string' ? payload.detail : 'The photo could not be uploaded.', request.status));
+      reject(new ApiError(typeof payload?.detail === 'string' ? payload.detail : `The ${label} could not be uploaded.`, request.status));
     };
+    if (options.signal?.aborted) { reject(new ApiError('Upload cancelled.', 0)); return; }
     request.send(form);
   });
 }

@@ -129,7 +129,8 @@ test('map UI keeps Explore/Your World, sheets and private navigation separate', 
   for (const text of ['Explore', 'Your World', 'state.data.stats.countries', 'Create Journey', 'useProfileTheme', 'onRegionChangeComplete', 'WorldPlaceSheet', 'PersonalMomentsMap']) assert.ok(screen.includes(text), text);
   assert.match(screen, /showsUserLocation=\{false\}/);
   const sheet = fs.readFileSync('src/features/world/WorldPlaceSheet.tsx', 'utf8');
-  for (const text of ['worldApi.members', 'worldApi.place', 'exploreApi.place', '/journey/', '/explore/place/', 'PanResponder', 'controller.signal.aborted']) assert.ok(sheet.includes(text), text);
+  for (const text of ['worldApi.members', 'worldApi.place', 'exploreApi.place', '/post/[id]', '/explore/place/', 'PanResponder', 'controller.signal.aborted']) assert.ok(sheet.includes(text), text);
+  assert.match(sheet, /scope: 'own'/);
   assert.match(fs.readFileSync('src/features/explore/PlaceExploreScreen.tsx', 'utf8'), /worldMapTarget\('explore'/);
   assert.equal(viewport.worldMapTarget('own', 45, 9).params.worldMode, 'own');
 });

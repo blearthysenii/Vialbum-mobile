@@ -1,4 +1,5 @@
-import { useColorScheme } from 'react-native';
+import { useAppColorScheme as useColorScheme } from '@/theme/appearance';
+import { darkPalette } from '@/theme/palette';
 
 export const authLightColors = {
   canvas: '#FFFFFF',
@@ -15,7 +16,7 @@ export const authLightColors = {
   control: 'rgba(255, 255, 255, 0.74)',
   controlIcon: '#3C3C43',
   link: '#2F95FF',
-  accent: '#B65F3A',
+  accent: '#007AFF',
   success: '#34C759',
   errorSurface: 'rgba(255, 242, 240, 0.76)',
   errorTitle: '#5A2521',
@@ -25,26 +26,26 @@ export const authLightColors = {
 } as const;
 
 export const authDarkColors = {
-  canvas: '#000000',
-  surface: 'rgba(38, 38, 40, 0.72)',
-  surfaceStrong: 'rgba(48, 48, 50, 0.82)',
-  inputText: '#F5F5F7',
-  title: '#FFFFFF',
-  body: '#A1A1A6',
-  placeholder: 'rgba(235, 235, 245, 0.42)',
-  label: '#A1A1A6',
-  separator: 'rgba(235, 235, 245, 0.14)',
-  glassBorder: 'rgba(255, 255, 255, 0.16)',
+  canvas: darkPalette.canvas,
+  surface: darkPalette.glass,
+  surfaceStrong: darkPalette.glassStrong,
+  inputText: darkPalette.ink,
+  title: darkPalette.ink,
+  body: darkPalette.muted,
+  placeholder: darkPalette.placeholder,
+  label: darkPalette.muted,
+  separator: darkPalette.border,
+  glassBorder: darkPalette.border,
   glassHighlight: 'rgba(255, 255, 255, 0.22)',
-  control: 'rgba(72, 72, 74, 0.62)',
-  controlIcon: '#D1D1D6',
-  link: '#409CFF',
-  accent: '#C87550',
-  success: '#30D158',
+  control: darkPalette.control,
+  controlIcon: darkPalette.ink,
+  link: darkPalette.accent,
+  accent: darkPalette.accentStrong,
+  success: darkPalette.success,
   errorSurface: 'rgba(87, 32, 29, 0.62)',
   errorTitle: '#FFD7D3',
   errorText: '#F1AAA4',
-  errorIcon: '#FF6961',
+  errorIcon: darkPalette.danger,
   shadow: '#000000',
 } as const;
 

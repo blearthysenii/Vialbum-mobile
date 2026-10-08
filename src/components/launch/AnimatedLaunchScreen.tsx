@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -36,6 +37,8 @@ function LaunchLetter({
   reduceMotion: boolean;
   textColor: string;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const animatedStyle = useAnimatedStyle(() => {
     if (reduceMotion) {
       return { opacity: progress.value, transform: [{ translateY: 0 }, { scale: 1 }] };
@@ -55,13 +58,15 @@ function LaunchLetter({
   }, [index, reduceMotion]);
 
   return (
-    <Animated.Text accessible={false} style={[styles.letter, { color: textColor }, animatedStyle]}>
+    <Animated.Text accessible={false} style={presentationTextStyle([styles.letter, { color: resolvePresentationColor(textColor, 'color', 'content') }, animatedStyle])}>
       {letter}
     </Animated.Text>
   );
 }
 
 export function AnimatedLaunchScreen({ ready, onComplete }: { ready: boolean; onComplete: () => void }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const { isDark, colors: authColors } = useAuthTheme();
   const themeStyles = useMemo(() => StyleSheet.create({
     screen: { backgroundColor: authColors.canvas },
@@ -129,7 +134,7 @@ export function AnimatedLaunchScreen({ ready, onComplete }: { ready: boolean; on
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={styles.wordFrame}>
-        <Text accessible={false} style={[styles.title, themeStyles.title, styles.wordMeasure]}>Vialbum</Text>
+        <Text accessible={false} style={presentationTextStyle([styles.title, themeStyles.title, styles.wordMeasure])}>Vialbum</Text>
         <View pointerEvents="none" style={styles.letters}>
           {WORD.split('').map((letter, index) => (
             <LaunchLetter
@@ -177,3 +182,4 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
   },
 });
+const presentationBaselineStyles = styles;

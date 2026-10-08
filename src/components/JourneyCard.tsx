@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { useState } from 'react';
@@ -27,6 +28,8 @@ function CardContent({
 }: {
   journey: Journey;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   return (
     <>
       <View
@@ -36,14 +39,14 @@ function CardContent({
 
       <View style={styles.topLine}>
         <Text
-          style={styles.country}
+          style={presentationTextStyle(styles.country)}
           numberOfLines={1}
         >
           {journey.country.toUpperCase()}
         </Text>
 
         <Text
-          style={styles.year}
+          style={presentationTextStyle(styles.year)}
           numberOfLines={1}
         >
           {journey.start_date.slice(0, 4)}
@@ -52,7 +55,7 @@ function CardContent({
 
       <View style={styles.bottomContent}>
         <Text
-          style={styles.destination}
+          style={presentationTextStyle(styles.destination)}
           numberOfLines={2}
           adjustsFontSizeToFit
           minimumFontScale={0.8}
@@ -61,7 +64,7 @@ function CardContent({
         </Text>
 
         <Text
-          style={styles.location}
+          style={presentationTextStyle(styles.location)}
           numberOfLines={1}
         >
           {journey.destination}
@@ -76,6 +79,8 @@ export function JourneyCard({
 }: {
   journey: Journey;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const [isOpening, setIsOpening] = useState(false);
   const coverUrl = resolveApiImageUrl(journey.cover_media_url, `journey.cover_media_url:${journey.id}`);
   const [failedCoverUrl, setFailedCoverUrl] = useState<string | null>(null);
@@ -144,7 +149,7 @@ export function JourneyCard({
             </View>
           )}
           {isOpening ? <View pointerEvents="none" style={styles.opening}>
-            <ActivityIndicator color={colors.onDark} />
+            <ActivityIndicator color={resolvePresentationColor(colors.onDark, 'color', 'content')} />
           </View> : null}
         </View>
       </Pressable>
@@ -311,3 +316,4 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
 });
+const presentationBaselineStyles = styles;

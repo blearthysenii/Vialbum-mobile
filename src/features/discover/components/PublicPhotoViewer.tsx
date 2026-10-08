@@ -1,83 +1,67 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
+import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import { Modal, Pressable, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
-import { cachedImageSource } from '@/features/media/imageUrl';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { PhotoPager } from '@/features/media/components/PhotoPager';
+import { ViewerCaption } from '@/features/media/components/ViewerCaption';
+import { useViewerChrome } from '@/features/media/useViewerChrome';
+import type { PhotoOrigin } from '@/features/media/viewerGeometry';
 import type { PublicPhoto } from '../types';
 
-export function PublicPhotoViewer({ photo, onClose }: { photo: PublicPhoto | null; onClose: () => void }) {
+type ViewerProps = { photos: PublicPhoto[]; onClose: () => void; onPhotoChange?: (photo: PublicPhoto) => void; origin?: PhotoOrigin; startDate?: string; onLocation?: (photo: PublicPhoto) => void };
+export function PublicPhotoViewer({ photo, ...props }: ViewerProps & { photo: PublicPhoto | null }) {
   const { width, height } = useWindowDimensions();
-  return <Modal visible={Boolean(photo)} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
-    {photo ? <ViewerContent key={`${photo.id}:${width}:${height}`} photo={photo} onClose={onClose} /> : null}
+  const close = useRef<() => void>(props.onClose);
+  const registerClose = useCallback((handler: () => void) => { close.current = handler; }, []);
+  return <Modal visible={Boolean(photo)} transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={() => close.current()}>
+    {photo ? <GalleryContent key={`${width}:${height}`} initialPhoto={photo} {...props} registerClose={registerClose} /> : null}
   </Modal>;
 }
 
-function ViewerContent({ photo, onClose }: { photo: PublicPhoto; onClose: () => void }) {
+function GalleryContent({ initialPhoto, photos, onClose, onPhotoChange, origin, startDate, onLocation, registerClose }: ViewerProps & { initialPhoto: PublicPhoto; registerClose: (handler: () => void) => void }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
+  const [photo, setPhoto] = useState(initialPhoto);
+  const chrome = useViewerChrome();
+  const dismissY = useSharedValue(0);
+  const transition = useSharedValue(0);
+  const closeRequest = useSharedValue(0);
+  const pendingLocation = useRef<PublicPhoto | null>(null);
+  const requestClose = useCallback(() => closeRequest.set(value => value + 1), [closeRequest]);
+  useEffect(() => { registerClose(requestClose); }, [registerClose, requestClose]);
+  const selectPhoto = (next: PublicPhoto) => { setPhoto(next); onPhotoChange?.(next); chrome.reveal(); };
+  const finishClose = () => { onClose(); if (pendingLocation.current) onLocation?.(pendingLocation.current); };
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: transition.get() * (1 - Math.min(1, dismissY.get() / 300)) }));
+  const controlsStyle = useAnimatedStyle(() => ({ opacity: chrome.opacity.get() * transition.get() * (1 - Math.min(1, dismissY.get() / 100)), transform: [{ translateY: (1 - chrome.opacity.get()) * 6 }] }));
+  const index = Math.max(0, photos.findIndex(item => item.id === photo.id));
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const reduced = useReducedMotion();
-  const zoom = useSharedValue(1);
-  const offset = useSharedValue(0);
-  const dismissing = useSharedValue(false);
-  const dragging = useSharedValue(false);
-  const onScroll = useAnimatedScrollHandler(event => { zoom.set(event.zoomScale ?? 1); });
-  const nativeScroll = Gesture.Native();
-  const pan = Gesture.Pan().maxPointers(1).activeOffsetY([-12, 12]).failOffsetX([-12, 12])
-    .simultaneousWithExternalGesture(nativeScroll)
-    .onTouchesDown((event, manager) => {
-      if (event.numberOfTouches > 1 || zoom.get() > 1.01 || dismissing.get()) manager.fail();
-    })
-    .onStart(() => { dragging.set(zoom.get() <= 1.01); })
-    .onUpdate(event => {
-      if (dragging.get() && zoom.get() <= 1.01) offset.set(event.translationY);
-    })
-    .onEnd((event, success) => {
-      if (!success || !dragging.get() || zoom.get() > 1.01) return;
-      const distance = Math.abs(event.translationY);
-      const vertical = distance > Math.abs(event.translationX) * 1.2;
-      const fast = Math.abs(event.velocityY) > 1100 && distance > 24;
-      if (vertical && (distance > height * 0.23 || fast)) {
-        dismissing.set(true);
-        const direction = Math.sign(event.translationY);
-        if (reduced) runOnJS(onClose)();
-        else offset.set(withTiming(direction * height, { duration: 180 }, finished => { if (finished) runOnJS(onClose)(); }));
-      }
-    })
-    .onFinalize(() => {
-      dragging.set(false);
-      if (!dismissing.get()) offset.set(reduced ? 0 : withSpring(0, { damping: 24, stiffness: 260, overshootClamping: true }));
-    });
-  const background = useAnimatedStyle(() => ({ opacity: 1 - Math.min(1, Math.abs(offset.get()) / height) }));
-  const image = useAnimatedStyle(() => ({ transform: [
-    { translateY: offset.get() },
-    { scale: reduced ? 1 : 1 - Math.min(0.15, Math.abs(offset.get()) / height * 0.2) },
-  ] }));
-  const controls = useAnimatedStyle(() => ({ opacity: 1 - Math.min(0.5, Math.abs(offset.get()) / height) }));
   return <GestureHandlerRootView style={styles.screen}>
     <StatusBar style="light" />
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.backdrop, background]} />
-    <GestureDetector gesture={pan}>
-      <Animated.View style={[StyleSheet.absoluteFill, image]}>
-        <GestureDetector gesture={nativeScroll}>
-          <Animated.ScrollView maximumZoomScale={3} minimumZoomScale={1} centerContent bounces={false}
-            scrollEventThrottle={16} onScroll={onScroll} contentContainerStyle={{ width, height }}>
-            <Image source={cachedImageSource(photo.url, `public-photo:${photo.id}`)} style={{ width, height }} contentFit="contain" cachePolicy="memory-disk" />
-          </Animated.ScrollView>
-        </GestureDetector>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.backdrop, fadeStyle]} />
+    <PhotoPager photos={photos} photo={photo} width={width} height={height} onChange={selectPhoto} onClose={finishClose} dismissY={dismissY}
+      origin={origin} transition={transition} closeRequest={closeRequest} onTap={chrome.reveal} onInteraction={chrome.interaction} />
+    <Animated.View pointerEvents={chrome.visible ? 'box-none' : 'none'} accessibilityElementsHidden={!chrome.visible} importantForAccessibility={chrome.visible ? 'auto' : 'no-hide-descendants'} style={[styles.controls, controlsStyle]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Close photo" hitSlop={8} onPress={requestClose}
+        style={[styles.close, { top: insets.top + 10, right: Math.max(16, insets.right + 10) }]}>
+        <BlurView pointerEvents="none" intensity={28} tint={presentationBlurTint("dark")} style={StyleSheet.absoluteFill} /><Ionicons name="close" size={22} color={resolvePresentationColor("#FFFFFF", 'color', 'content')} />
+      </Pressable>
+      {photos.length > 1 ? <Text pointerEvents="none" accessibilityLabel={`Photo ${index + 1} of ${photos.length}`} style={presentationTextStyle([styles.counter, { top: insets.top + 24, left: Math.max(22, insets.left + 16) }])}>{index + 1} / {photos.length}</Text> : null}
+      <Animated.View style={[styles.caption, { bottom: insets.bottom + 20, left: insets.left + 22, right: insets.right + 22 }]}>
+        <ViewerCaption photo={photo} startDate={startDate} onLocation={onLocation ? () => { pendingLocation.current = photo; requestClose(); } : undefined} />
       </Animated.View>
-    </GestureDetector>
-    <Animated.View pointerEvents="box-none" style={[styles.controls, controls]}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Close photo" hitSlop={10} onPress={onClose}
-        style={[styles.close, { top: insets.top + 10, right: Math.max(16, insets.right + 10) }]}><Ionicons name="close" size={23} color="#FFFFFF" /></Pressable>
-      {photo.caption ? <Text pointerEvents="none" style={[styles.caption, { bottom: insets.bottom + 20, left: insets.left + 20, right: insets.right + 20 }]}>{photo.caption}</Text> : null}
     </Animated.View>
   </GestureHandlerRootView>;
 }
 const styles = StyleSheet.create({
   screen: { flex: 1 }, backdrop: { backgroundColor: '#000000' }, controls: { ...StyleSheet.absoluteFill, zIndex: 20, elevation: 20 },
-  close: { position: 'absolute', zIndex: 21, elevation: 21, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(50,50,50,0.75)' },
-  caption: { position: 'absolute', color: '#FFFFFF', fontSize: 15, lineHeight: 22 },
+  close: { position: 'absolute', width: 44, height: 44, borderRadius: 22, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(40,40,40,0.35)' },
+  counter: { position: 'absolute', color: '#DDDDDD', fontSize: 13, fontVariant: ['tabular-nums'] },
+  caption: { position: 'absolute' },
 });
+const presentationBaselineStyles = styles;

@@ -1,24 +1,27 @@
+import { resolvePresentationColor } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
-import { useEffect, useMemo, useState } from 'react';
+import { StableCachedImage } from '@/features/media/components/StableCachedImage';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import type { ImageStyle, StyleProp, ViewStyle } from 'react-native';
 
-import { cachedImageSource, resolveApiImageUrl } from '@/features/media/imageUrl';
+import { resolveApiImageUrl } from '@/features/media/imageUrl';
 import { useProfileTheme } from '@/features/profile/theme';
 
-export function ProfileAvatarImage({
+export const ProfileAvatarImage = memo(function ProfileAvatarImage({
   source,
   label,
   cacheKey,
   style,
   fallbackIconSize,
+  onSourceError,
 }: {
   source: string | null;
   label: string;
   cacheKey: string;
   style: StyleProp<ImageStyle>;
   fallbackIconSize: number;
+  onSourceError?: () => void;
 }) {
   const theme = useProfileTheme();
   const uri = useMemo(() => {
@@ -34,23 +37,23 @@ export function ProfileAvatarImage({
 
   if (!showRemotePhoto) {
     return (
-      <View style={[style as StyleProp<ViewStyle>, { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.placeholder }]}>
-        <Ionicons name="person-outline" size={fallbackIconSize} color={theme.muted} />
+      <View style={[style as StyleProp<ViewStyle>, { alignItems: 'center', justifyContent: 'center', backgroundColor: resolvePresentationColor(theme.placeholder, 'backgroundColor', 'content') }]}>
+        <Ionicons name="person-outline" size={fallbackIconSize} color={resolvePresentationColor(theme.muted, 'color', 'content')} />
       </View>
     );
   }
 
   return (
-    <Image
-      source={cachedImageSource(uri!, cacheKey)}
+    <StableCachedImage
+      uri={uri}
+      namespace={cacheKey}
       style={style}
       contentFit="cover"
-      cachePolicy="disk"
-      transition={220}
-      onError={(response) => {
+      onSourceError={onSourceError}
+      onError={() => {
         setFailedUrl(uri);
-        if (__DEV__) console.warn('[Profile image] onError', { url: uri, response });
+        if (__DEV__) console.warn('[Profile image] onError', { hasSource: Boolean(uri), failed: true });
       }}
     />
   );
-}
+});

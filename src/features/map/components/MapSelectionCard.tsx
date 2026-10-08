@@ -1,3 +1,4 @@
+import { usePresentationStyles, presentationTextStyle } from '@/theme/presentation';
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +18,8 @@ type ItemCardProps = {
 };
 
 export function MapSelectionCard({ item, thumbnailUrl, onOpen }: ItemCardProps) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const day = mapItemDayNumber(item);
   const date = item.type === 'journey'
     ? formatDateRange(item.journey_start_date, item.journey_end_date)
@@ -28,15 +31,15 @@ export function MapSelectionCard({ item, thumbnailUrl, onOpen }: ItemCardProps) 
     : location ?? item.subtitle;
   return <SafeAreaView style={styles.wrap} edges={['bottom']} pointerEvents="box-none">
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${item.type} ${item.title}`} style={styles.card} onPress={onOpen}>
-      <View style={styles.thumbnail}>{thumbnailUrl ? <Image source={cachedImageSource(thumbnailUrl, `map:${mapItemKey(item)}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={mapItemKey(item)} /> : <Text style={styles.placeholder}>V</Text>}</View>
+      <View style={styles.thumbnail}>{thumbnailUrl ? <Image source={cachedImageSource(thumbnailUrl, `map:${mapItemKey(item)}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" recyclingKey={mapItemKey(item)} /> : <Text style={presentationTextStyle(styles.placeholder)}>V</Text>}</View>
       <View style={styles.body}>
-        <Text style={styles.kind}>{item.type.toUpperCase()}</Text>
-        <Text numberOfLines={1} style={styles.title}>{item.title}</Text>
-        {item.caption ? <Text numberOfLines={2} style={styles.caption}>{item.caption}</Text> : null}
-        {context ? <Text numberOfLines={1} style={styles.meta}>{context}</Text> : null}
-        {date ? <Text numberOfLines={1} style={styles.meta}>{date}</Text> : null}
+        <Text style={presentationTextStyle(styles.kind)}>{item.type.toUpperCase()}</Text>
+        <Text numberOfLines={1} style={presentationTextStyle(styles.title)}>{item.title}</Text>
+        {item.caption ? <Text numberOfLines={2} style={presentationTextStyle(styles.caption)}>{item.caption}</Text> : null}
+        {context ? <Text numberOfLines={1} style={presentationTextStyle(styles.meta)}>{context}</Text> : null}
+        {date ? <Text numberOfLines={1} style={presentationTextStyle(styles.meta)}>{date}</Text> : null}
       </View>
-      <Text accessibilityElementsHidden style={styles.chevron}>›</Text>
+      <Text accessibilityElementsHidden style={presentationTextStyle(styles.chevron)}>›</Text>
     </Pressable>
   </SafeAreaView>;
 }
@@ -48,17 +51,19 @@ type GroupProps = {
 };
 
 export function MapOverlapCard({ items, onSelect, onClose }: GroupProps) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   return <SafeAreaView style={styles.wrap} edges={['bottom']} pointerEvents="box-none">
     <View style={styles.group}>
       <View style={styles.groupHeader}>
-        <View><Text style={styles.kind}>SAME PLACE</Text><Text style={styles.groupTitle}>{items.length} moments here</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close grouped map items" onPress={onClose} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable>
+        <View><Text style={presentationTextStyle(styles.kind)}>SAME PLACE</Text><Text style={presentationTextStyle(styles.groupTitle)}>{items.length} moments here</Text></View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close grouped map items" onPress={onClose} style={styles.close}><Text style={presentationTextStyle(styles.closeText)}>×</Text></Pressable>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupItems}>
         {items.map((item) => <Pressable accessibilityRole="button" accessibilityLabel={`Select ${item.type} ${item.title}`} key={mapItemKey(item)} onPress={() => onSelect(item)} style={styles.groupItem}>
-          <Text style={styles.kind}>{item.type.toUpperCase()}</Text>
-          <Text numberOfLines={2} style={styles.groupItemTitle}>{item.title}</Text>
-          <Text numberOfLines={1} style={styles.meta}>{item.location ?? item.subtitle}</Text>
+          <Text style={presentationTextStyle(styles.kind)}>{item.type.toUpperCase()}</Text>
+          <Text numberOfLines={2} style={presentationTextStyle(styles.groupItemTitle)}>{item.title}</Text>
+          <Text numberOfLines={1} style={presentationTextStyle(styles.meta)}>{item.location ?? item.subtitle}</Text>
         </Pressable>)}
       </ScrollView>
     </View>
@@ -79,3 +84,4 @@ const styles = StyleSheet.create({
   groupItems: { gap: spacing.sm, paddingTop: spacing.md }, groupItem: { width: 150, minHeight: 86, padding: spacing.sm, borderRadius: radii.md, backgroundColor: colors.surfaceWarm },
   groupItemTitle: { ...typography.button, color: colors.ink, marginTop: 5 },
 });
+const presentationBaselineStyles = styles;

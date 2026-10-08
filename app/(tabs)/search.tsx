@@ -1,6 +1,3 @@
 import { useAuth } from '@/features/auth/AuthProvider';
-import { ExploreScreen } from '@/features/explore/ExploreScreen';
-export default function SearchScreen() {
-  const { user } = useAuth();
-  return <ExploreScreen key={user?.id} />;
-}
+import { MomentsFeed } from '@/features/moments/MomentsFeed';
+export default function MomentsScreen() { const { user } = useAuth(); return <MomentsFeed key={user?.id} embedded />; }

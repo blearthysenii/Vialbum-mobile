@@ -18,13 +18,25 @@
         }
       ],
       "expo-secure-store",
+      ["expo-video", { "supportsBackgroundPlayback": false, "supportsPictureInPicture": false }],
       "@react-native-community/datetimepicker",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Vialbum uses photo access so you can add selected travel photos to your private journeys.",
+          "photosPermission": "Vialbum uses library access so you can select travel photos for journeys and videos for Moments.",
           "cameraPermission": false,
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Vialbum uses photo access to show your library and let you select photos for a journey.",
+          "savePhotosPermission": false,
+          "granularPermissions": [
+            "photo"
+          ],
+          "preventAutomaticLimitedAccessAlert": true
         }
       ]
     ],

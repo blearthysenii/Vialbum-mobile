@@ -4,6 +4,12 @@ import type { JourneyMedia, MediaUpdate, SelectedPhoto } from '@/features/media/
 
 function metadata(photo: SelectedPhoto) {
   const fields: Record<string, string> = {};
+  if (photo.videoEdit) {
+    fields.trim_start = String(photo.videoEdit.trimStart);
+    fields.trim_end = String(photo.videoEdit.trimEnd);
+    fields.cover_time = String(photo.videoEdit.coverTime);
+  }
+  if (photo.requestId) fields.request_id = photo.requestId;
   if (photo.width) fields.width = String(photo.width);
   if (photo.height) fields.height = String(photo.height);
   if (photo.capturedAt) fields.captured_at = photo.capturedAt;
@@ -13,14 +19,15 @@ function metadata(photo: SelectedPhoto) {
 }
 
 export const mediaApi = {
-  list: (journeyId: string) =>
-    apiRequest<JourneyMedia[]>(`/journeys/${journeyId}/media`, { authenticated: true }),
+  list: (journeyId: string, signal?: AbortSignal) =>
+    apiRequest<JourneyMedia[]>(`/journeys/${journeyId}/media`, { authenticated: true, signal }),
   upload: (journeyId: string, photo: SelectedPhoto, onProgress: (value: number) => void) =>
     apiUpload<JourneyMedia>(
-      `/journeys/${journeyId}/media`,
+      `/journeys/${journeyId}/${photo.type === 'video' ? 'videos' : 'media'}`,
       { uri: photo.uri, name: photo.name, type: photo.mimeType },
       metadata(photo),
       onProgress,
+      photo.type === 'video' ? { timeoutMs: 300000, mediaLabel: 'video' } : undefined,
     ),
   updateCaption: (journeyId: string, mediaId: string, caption: string | null) =>
     apiRequest<JourneyMedia>(`/journeys/${journeyId}/media/${mediaId}`, {
@@ -34,6 +41,7 @@ export const mediaApi = {
     apiRequest<void>(`/journeys/${journeyId}/media/${mediaId}`, {
       method: 'DELETE', authenticated: true,
     }),
+  shareVideos: (journeyId: string) => apiRequest<string[]>(`/journeys/${journeyId}/videos/share`, { method: 'POST', authenticated: true }),
   setCover: (journeyId: string, mediaId: string) =>
     apiRequest<Journey>(`/journeys/${journeyId}/cover/${mediaId}`, {
       method: 'PATCH', authenticated: true,

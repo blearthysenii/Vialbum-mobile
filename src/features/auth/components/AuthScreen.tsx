@@ -1,3 +1,4 @@
+import { usePresentationStyles, presentationTextStyle } from '@/theme/presentation';
 import { PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,14 +10,16 @@ import { typography } from '@/theme/tokens';
 type AuthScreenProps = PropsWithChildren<{ eyebrow: string; title: string; subtitle: string }>;
 
 export function AuthScreen({ eyebrow, title, subtitle, children }: AuthScreenProps) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
-          <View style={styles.brand}><Text style={styles.brandText}>V</Text></View>
-          <Text style={styles.eyebrow}>{eyebrow}</Text>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <View style={styles.brand}><Text style={presentationTextStyle(styles.brandText)}>V</Text></View>
+          <Text style={presentationTextStyle(styles.eyebrow)}>{eyebrow}</Text>
+          <Text style={presentationTextStyle(styles.title)}>{title}</Text>
+          <Text style={presentationTextStyle(styles.subtitle)}>{subtitle}</Text>
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -33,3 +36,4 @@ const styles = StyleSheet.create({
   title: { ...typography.display, color: colors.ink, marginTop: spacing.sm },
   subtitle: { ...typography.bodyLarge, color: colors.muted, marginTop: spacing.sm, maxWidth: 340 },
 });
+const presentationBaselineStyles = styles;

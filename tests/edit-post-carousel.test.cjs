@@ -55,7 +55,7 @@ async function mount(count, persistedPhotos) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   vm.runInNewContext(code, { module, exports: module.exports, setTimeout, clearTimeout,
-    require: name => { assert.ok(mocks[name], `Unexpected dependency: ${name}`); return mocks[name]; } });
+    require: require('./appearance-test-adapter.cjs').wrap(name => { assert.ok(mocks[name], `Unexpected dependency: ${name}`); return mocks[name]; }) });
   const render = () => { cursor = 0; return module.exports.EditPostScreen({ id: 'journey' }); };
   render();
   effects[0]();

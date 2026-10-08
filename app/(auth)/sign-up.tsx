@@ -1,3 +1,4 @@
+import { resolvePresentationColor, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, router } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -256,50 +257,50 @@ export default function SignUpScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Animated.View shouldRasterizeIOS={false} style={markAnimation}><AuthVortexMark authColors={authColors} isDark={isDark} /></Animated.View>
-            <Animated.View shouldRasterizeIOS={false} style={titleAnimation}><Text style={styles.title}>{step === 'form' ? 'Create your Vialbum' : 'Check your email'}</Text></Animated.View>
+            <Animated.View shouldRasterizeIOS={false} style={titleAnimation}><Text style={presentationTextStyle(styles.title)}>{step === 'form' ? 'Create your Vialbum' : 'Check your email'}</Text></Animated.View>
           </View>
 
           {step === 'form' ? <Animated.View shouldRasterizeIOS={false} style={[styles.formCard, formAnimation]}>
-            <BlurView pointerEvents="none" tint={isDark ? 'dark' : 'light'} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
-            <TextInput accessibilityLabel="First name" autoCapitalize="words" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('firstName')} onSubmitEditing={() => lastNameRef.current?.focus()} placeholder="First name" placeholderTextColor={authColors.placeholder} returnKeyType="next" style={styles.input} textContentType="givenName" value={form.firstName} />
+            <BlurView pointerEvents="none" tint={presentationBlurTint(isDark ? 'dark' : 'light')} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
+            <TextInput accessibilityLabel="First name" autoCapitalize="words" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('firstName')} onSubmitEditing={() => lastNameRef.current?.focus()} placeholder="First name" placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')} returnKeyType="next" style={presentationTextStyle(styles.input)} textContentType="givenName" value={form.firstName} />
             <View style={styles.separator} />
-            <TextInput ref={lastNameRef} accessibilityLabel="Last name" autoCapitalize="words" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('lastName')} onSubmitEditing={() => usernameRef.current?.focus()} placeholder="Last name" placeholderTextColor={authColors.placeholder} returnKeyType="next" style={styles.input} textContentType="familyName" value={form.lastName} />
+            <TextInput ref={lastNameRef} accessibilityLabel="Last name" autoCapitalize="words" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('lastName')} onSubmitEditing={() => usernameRef.current?.focus()} placeholder="Last name" placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')} returnKeyType="next" style={presentationTextStyle(styles.input)} textContentType="familyName" value={form.lastName} />
             <View style={styles.separator} />
-            <TextInput ref={usernameRef} accessibilityLabel="Username" autoCapitalize="none" autoComplete="username-new" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('username')} onSubmitEditing={() => emailRef.current?.focus()} placeholder="Choose a username" placeholderTextColor={authColors.placeholder} returnKeyType="next" spellCheck={false} style={styles.input} textContentType="username" value={form.username} />
-            {usernameError ? <Text accessibilityRole="alert" style={styles.fieldError}>{usernameError}</Text> : null}
+            <TextInput ref={usernameRef} accessibilityLabel="Username" autoCapitalize="none" autoComplete="username-new" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('username')} onSubmitEditing={() => emailRef.current?.focus()} placeholder="Choose a username" placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')} returnKeyType="next" spellCheck={false} style={presentationTextStyle(styles.input)} textContentType="username" value={form.username} />
+            {usernameError ? <Text accessibilityRole="alert" style={presentationTextStyle(styles.fieldError)}>{usernameError}</Text> : null}
             <View style={styles.separator} />
-            <TextInput ref={emailRef} accessibilityLabel="Email address" autoCapitalize="none" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="email-address" onChangeText={update('email')} onSubmitEditing={() => passwordRef.current?.focus()} placeholder="Email address" placeholderTextColor={authColors.placeholder} returnKeyType="next" style={styles.input} textContentType="emailAddress" value={form.email} />
+            <TextInput ref={emailRef} accessibilityLabel="Email address" autoCapitalize="none" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="email-address" onChangeText={update('email')} onSubmitEditing={() => passwordRef.current?.focus()} placeholder="Email address" placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')} returnKeyType="next" style={presentationTextStyle(styles.input)} textContentType="emailAddress" value={form.email} />
             {emailError ? (
               <View style={styles.fieldErrorRow}>
-                <Text style={styles.fieldError}>{emailError} </Text>
+                <Text style={presentationTextStyle(styles.fieldError)}>{emailError} </Text>
                 <Link href={{ pathname: '/sign-in', params: { email: form.email.trim().toLowerCase() } }} asChild>
                   <Pressable hitSlop={8} style={({ pressed }) => [styles.linkButton, pressed && styles.linkButtonPressed]}>
-                    {({ pressed }) => <Text style={[styles.link, pressed && styles.linkPressed]}>Sign in instead</Text>}
+                    {({ pressed }) => <Text style={presentationTextStyle([styles.link, pressed && styles.linkPressed])}>Sign in instead</Text>}
                   </Pressable>
                 </Link>
               </View>
             ) : null}
             <View style={styles.separator} />
             <View style={styles.inputRow}>
-              <TextInput ref={passwordRef} accessibilityLabel="Password" autoCapitalize="none" autoComplete="new-password" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('password')} onSubmitEditing={() => confirmPasswordRef.current?.focus()} placeholder="Password · at least 8 characters" placeholderTextColor={authColors.placeholder} returnKeyType="next" secureTextEntry={!isPasswordVisible} spellCheck={false} style={styles.rowInput} textContentType="newPassword" value={form.password} />
-              <PasswordVisibilityToggle color={authColors.controlIcon} isVisible={isPasswordVisible} onToggle={() => setIsPasswordVisible((current) => !current)} />
+              <TextInput ref={passwordRef} accessibilityLabel="Password" autoCapitalize="none" autoComplete="new-password" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('password')} onSubmitEditing={() => confirmPasswordRef.current?.focus()} placeholder="Password · at least 8 characters" placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')} returnKeyType="next" secureTextEntry={!isPasswordVisible} spellCheck={false} style={presentationTextStyle(styles.rowInput)} textContentType="newPassword" value={form.password} />
+              <PasswordVisibilityToggle color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} isVisible={isPasswordVisible} onToggle={() => setIsPasswordVisible((current) => !current)} />
             </View>
             <View style={styles.separator} />
             <View style={styles.inputRow}>
-              <TextInput ref={confirmPasswordRef} accessibilityLabel="Confirm password" autoCapitalize="none" autoComplete="new-password" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('confirmPassword')} onSubmitEditing={() => void continueToVerification()} placeholder="Confirm password" placeholderTextColor={authColors.placeholder} returnKeyType="go" secureTextEntry={!isConfirmPasswordVisible} spellCheck={false} style={styles.rowInput} textContentType="newPassword" value={form.confirmPassword} />
-              <PasswordVisibilityToggle color={authColors.controlIcon} isVisible={isConfirmPasswordVisible} onToggle={() => setIsConfirmPasswordVisible((current) => !current)} />
+              <TextInput ref={confirmPasswordRef} accessibilityLabel="Confirm password" autoCapitalize="none" autoComplete="new-password" autoCorrect={false} keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={update('confirmPassword')} onSubmitEditing={() => void continueToVerification()} placeholder="Confirm password" placeholderTextColor={resolvePresentationColor(authColors.placeholder, 'placeholderTextColor', 'control')} returnKeyType="go" secureTextEntry={!isConfirmPasswordVisible} spellCheck={false} style={presentationTextStyle(styles.rowInput)} textContentType="newPassword" value={form.confirmPassword} />
+              <PasswordVisibilityToggle color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} isVisible={isConfirmPasswordVisible} onToggle={() => setIsConfirmPasswordVisible((current) => !current)} />
               <Pressable accessibilityLabel="Continue to email verification" accessibilityRole="button" accessibilityState={{ busy: isSubmitting, disabled: isSubmitting }} disabled={isSubmitting} hitSlop={8} onPress={() => void continueToVerification()} style={({ pressed }) => [styles.submit, pressed && styles.submitPressed, isSubmitting && styles.submitDisabled]}>
-                {isSubmitting ? <ActivityIndicator size="small" color={authColors.controlIcon} /> : <Ionicons name="arrow-forward" size={18} color={authColors.controlIcon} />}
+                {isSubmitting ? <ActivityIndicator size="small" color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} /> : <Ionicons name="arrow-forward" size={18} color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} />}
               </Pressable>
             </View>
           </Animated.View> : (
             <Animated.View style={[styles.verification, verificationAnimation]}>
-              <Text style={styles.verificationIntro}>We sent a 6-digit verification code to</Text>
-              <Text style={styles.verificationEmail}>{form.email}</Text>
+              <Text style={presentationTextStyle(styles.verificationIntro)}>We sent a 6-digit verification code to</Text>
+              <Text style={presentationTextStyle(styles.verificationEmail)}>{form.email}</Text>
               <View style={styles.codeRow}>
                 {verificationCode.map((digit, index) => (
                   <View key={index} style={styles.codeCell}>
-                    <BlurView pointerEvents="none" tint={isDark ? 'dark' : 'light'} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
+                    <BlurView pointerEvents="none" tint={presentationBlurTint(isDark ? 'dark' : 'light')} intensity={isDark ? 38 : 28} style={StyleSheet.absoluteFill} />
                     <TextInput
                       ref={(input) => { codeInputRefs.current[index] = input; }}
                       accessibilityLabel={`Verification code digit ${index + 1}`}
@@ -310,7 +311,7 @@ export default function SignUpScreen() {
                       onChangeText={(value) => updateVerificationCode(index, value)}
                       onKeyPress={({ nativeEvent }) => handleCodeKeyPress(index, nativeEvent.key)}
                       selectTextOnFocus
-                      style={styles.codeInput}
+                      style={presentationTextStyle(styles.codeInput)}
                       textContentType="oneTimeCode"
                       value={digit}
                     />
@@ -325,31 +326,31 @@ export default function SignUpScreen() {
                 onPress={() => void verifyAndSubmit()}
                 style={({ pressed }) => [styles.verifyButton, pressed && styles.submitPressed, isSubmitting && styles.submitDisabled]}
               >
-                {isSubmitting ? <ActivityIndicator size="small" color={authColors.controlIcon} /> : <Ionicons name="arrow-forward" size={18} color={authColors.controlIcon} />}
+                {isSubmitting ? <ActivityIndicator size="small" color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} /> : <Ionicons name="arrow-forward" size={18} color={resolvePresentationColor(authColors.controlIcon, 'color', 'content')} />}
               </Pressable>
               <View style={styles.verificationLinks}>
-                <Text style={styles.footerText}>Didn’t receive a code?</Text>
+                <Text style={presentationTextStyle(styles.footerText)}>Didn’t receive a code?</Text>
                 <Pressable disabled={resendCooldown > 0} hitSlop={10} onPress={resendCode} style={({ pressed }) => [styles.linkButton, pressed && styles.linkButtonPressed]}>
-                  {({ pressed }) => <Text style={[styles.link, resendCooldown > 0 && styles.cooldownText, pressed && styles.linkPressed]}>{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}</Text>}
+                  {({ pressed }) => <Text style={presentationTextStyle([styles.link, resendCooldown > 0 && styles.cooldownText, pressed && styles.linkPressed])}>{resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}</Text>}
                 </Pressable>
               </View>
-              {resendFeedback ? <Text accessibilityRole="alert" style={styles.resendFeedback}>{resendFeedback}</Text> : null}
+              {resendFeedback ? <Text accessibilityRole="alert" style={presentationTextStyle(styles.resendFeedback)}>{resendFeedback}</Text> : null}
               <Pressable hitSlop={10} onPress={changeEmail} style={({ pressed }) => [styles.changeEmailButton, pressed && styles.linkButtonPressed]}>
-                {({ pressed }) => <Text style={[styles.link, pressed && styles.linkPressed]}>Change email</Text>}
+                {({ pressed }) => <Text style={presentationTextStyle([styles.link, pressed && styles.linkPressed])}>Change email</Text>}
               </Pressable>
             </Animated.View>
           )}
 
           {error ? <View style={styles.feedback}><ErrorBanner message={error} style={styles.errorBanner} textStyle={styles.errorText} /></View> : null}
           {step === 'form' ? <Animated.View shouldRasterizeIOS={false} style={[styles.footer, footerAnimation]}>
-            <Text style={styles.footerText}>Already have an account?</Text>
+            <Text style={presentationTextStyle(styles.footerText)}>Already have an account?</Text>
             <Link href="/sign-in" asChild>
               <Pressable
                 hitSlop={10}
                 unstable_pressDelay={0}
                 style={({ pressed }) => [styles.linkButton, pressed && styles.linkButtonPressed]}
               >
-                {({ pressed }) => <Text style={[styles.link, pressed && styles.linkPressed]}>Sign in</Text>}
+                {({ pressed }) => <Text style={presentationTextStyle([styles.link, pressed && styles.linkPressed])}>Sign in</Text>}
               </Pressable>
             </Link>
           </Animated.View> : null}

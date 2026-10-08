@@ -1,3 +1,5 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
@@ -12,6 +14,8 @@ import { DiscoverJourneyCard } from './DiscoverJourneyCard';
 import { DiscoverEmptyState, DiscoverError, DiscoverSkeletons } from './DiscoverFeedback';
 
 export function DiscoverFeed() {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const [mode, setMode] = useState<'discover' | 'following'>('discover');
   const feed = useDiscoverFeed(mode);
   const theme = useProfileTheme();
@@ -40,9 +44,9 @@ export function DiscoverFeed() {
     }
   }
   const empty = !feed.loaded && !feed.error ? <DiscoverSkeletons theme={theme} />
-    : !feed.error ? mode === 'discover' ? <DiscoverEmptyState theme={theme} /> : <View style={styles.followEmpty}><Text style={[styles.title, { color: theme.ink }]}>{feed.followingCount === 0 ? 'Follow travelers to see their journeys here.' : 'No new journeys from people you follow.'}</Text><Text style={{ color: theme.muted, textAlign: 'center', marginTop: 10 }}>Discover people and trips you like, then follow them.</Text></View> : null;
+    : !feed.error ? mode === 'discover' ? <DiscoverEmptyState theme={theme} /> : <View style={styles.followEmpty}><Text style={presentationTextStyle([styles.title, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{feed.followingCount === 0 ? 'Follow travelers to see their journeys here.' : 'No new journeys from people you follow.'}</Text><Text style={presentationTextStyle({ color: resolvePresentationColor(theme.muted, 'color', 'content'), textAlign: 'center', marginTop: 10 })}>Discover people and trips you like, then follow them.</Text></View> : null;
 
-  return <View style={[styles.screen, { backgroundColor: theme.canvas }]}>
+  return <View style={[styles.screen, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'canvas') }]}>
     <FlashList
       key={mode}
       {...tabBarScroll}
@@ -55,19 +59,19 @@ export function DiscoverFeed() {
       contentContainerStyle={{ paddingTop: insets.top + 20, paddingHorizontal: 9, paddingBottom: insets.bottom + 110 }}
       ListHeaderComponent={<View>
         <Animated.View pointerEvents="none" style={holdStyle} />
-        <View style={styles.brand}><VialbumWordmark width={118} height={34} color={theme.ink} /></View>
+        <View style={styles.brand}><VialbumWordmark width={118} height={34} color={resolvePresentationColor(theme.ink, 'color', 'content')} /><Pressable accessibilityRole="button" accessibilityLabel="Search places and journeys" onPress={() => router.push('/explore')} style={{ position: 'absolute', right: 12, minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="search-outline" size={24} color={resolvePresentationColor(theme.ink, 'color', 'content')} /></Pressable></View>
         <View style={styles.heading}>
-          {(['discover', 'following'] as const).map((tab) => <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected: mode === tab }} disabled={refreshing} onPress={() => setMode(tab)} style={styles.tab}><Text style={[styles.title, { color: mode === tab ? theme.ink : theme.subtle }]}>{tab === 'discover' ? 'Discover' : 'Following'}</Text>{mode === tab ? <View style={[styles.indicator, { backgroundColor: theme.ink }]} /> : null}</Pressable>)}
+          {(['discover', 'following'] as const).map((tab) => <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected: mode === tab }} disabled={refreshing} onPress={() => setMode(tab)} style={styles.tab}><Text style={presentationTextStyle([styles.title, { color: resolvePresentationColor(mode === tab ? theme.ink : theme.subtle, 'color', 'content') }])}>{tab === 'discover' ? 'Discover' : 'Following'}</Text>{mode === tab ? <View style={[styles.indicator, { backgroundColor: resolvePresentationColor(theme.ink, 'backgroundColor', 'content') }]} /> : null}</Pressable>)}
         </View>
         {feed.error && !feed.items.length ? <DiscoverError message={feed.error} theme={theme} onRetry={() => void feed.refresh()} /> : null}
       </View>}
       ListEmptyComponent={empty}
-      ListFooterComponent={feed.loadingMore ? <ActivityIndicator style={styles.footer} color={theme.muted} /> : feed.error && feed.items.length ? <DiscoverError message={feed.error} theme={theme} onRetry={() => void feed.refresh()} /> : null}
+      ListFooterComponent={feed.loadingMore ? <ActivityIndicator style={styles.footer} color={resolvePresentationColor(theme.muted, 'color', 'content')} /> : feed.error && feed.items.length ? <DiscoverError message={feed.error} theme={theme} onRetry={() => void feed.refresh()} /> : null}
       onEndReached={() => { if (!feed.loading && !feed.loadingMore && !feed.error) void feed.loadMore(); }}
       onEndReachedThreshold={0.6}
       alwaysBounceVertical
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} progressViewOffset={insets.top + 8} tintColor={theme.muted} colors={[theme.muted]} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={pullToRefresh} progressViewOffset={insets.top + 8} tintColor={resolvePresentationColor(theme.muted, 'tintColor', 'content')} colors={resolvePresentationColor([theme.muted], 'colors', 'content')} />}
     />
   </View>;
 }
@@ -80,3 +84,4 @@ const styles = StyleSheet.create({
   footer: { padding: 22 },
   followEmpty: { padding: 30, paddingVertical: 70, alignItems: 'center' },
 });
+const presentationBaselineStyles = styles;

@@ -92,3 +92,17 @@ test('public timeline retains unassigned photos and map filters invalid coordina
   assert.equal(timeline[1].photos[0].id, 'attached');
   assert.deepEqual(Array.from(publicMapPoints(journey), (item) => item.id), ['journey', 'loose']);
 });
+
+test('retained public profiles preserve pages on warm return, revalidate privacy and keep data offline', async () => {
+  let calls = 0, changed = false, failure = null;
+  const store = createDiscoverStore('viewer', async cursor => {
+    calls++; if (failure) throw failure;
+    return cursor ? page(changed ? [card('tail-new')] : [card('tail')]) : page([card('head')], 'next');
+  }, true, true);
+  await store.refresh(); await store.loadMore();
+  for (let i = 0; i < 20; i++) await store.refresh(false);
+  assert.equal(calls, 2); assert.deepEqual(ids(store), ['head', 'tail']);
+  failure = Error('offline'); await store.refresh(); assert.deepEqual(ids(store), ['head', 'tail']);
+  failure = null; changed = true; await store.refresh(); assert.deepEqual(ids(store), ['head', 'tail-new']);
+  failure = { status: 403 }; await store.refresh(); assert.deepEqual(ids(store), []);
+});

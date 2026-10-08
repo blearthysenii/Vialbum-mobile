@@ -1,3 +1,4 @@
+import { usePresentationStyles, presentationTextStyle } from '@/theme/presentation';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -12,10 +13,12 @@ const gap = 5;
 const size = (Dimensions.get('window').width - 48 - gap * 2) / 3;
 
 export function PhotoGallery({ journeyId, media }: { journeyId: string; media: JourneyMedia[] }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   if (!media.length) return (
     <View style={styles.empty}>
-      <Text style={styles.emptyTitle}>Your photographs will appear here.</Text>
-      <Text style={styles.emptyCopy}>Choose photographs that bring this journey back to life.</Text>
+      <Text style={presentationTextStyle(styles.emptyTitle)}>Your photographs will appear here.</Text>
+      <Text style={presentationTextStyle(styles.emptyCopy)}>Choose photographs that bring this journey back to life.</Text>
     </View>
   );
   return <View style={styles.grid}>{media.map((photo) => (
@@ -32,3 +35,4 @@ const styles = StyleSheet.create({
   emptyTitle: { ...typography.cardTitle, color: colors.ink, marginBottom: spacing.sm },
   emptyCopy: { ...typography.body, color: colors.muted },
 });
+const presentationBaselineStyles = styles;

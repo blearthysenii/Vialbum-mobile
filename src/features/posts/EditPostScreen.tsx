@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
@@ -87,6 +88,8 @@ function formatPhotoDate(value: string) {
 }
 
 export function EditPostScreen({ id, action }: { id: string; action?: string }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const theme = useProfileTheme();
   const navigation = useNavigation();
   const pendingExit = useRef<(() => void) | null>(null);
@@ -464,12 +467,12 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
       ]}
     >
       <Text
-        style={[
+        style={presentationTextStyle([
           styles.headerButtonText,
           {
-            color: disabled ? '#B8B8BC' : theme.accent,
+            color: resolvePresentationColor(disabled ? '#B8B8BC' : theme.accent, 'color', 'control'),
           },
-        ]}
+        ])}
       >
         {label}
       </Text>
@@ -487,7 +490,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
         pressed && styles.pressed,
       ]}
     >
-      <Ionicons name="close" size={17} color="#737378" />
+      <Ionicons name="close" size={17} color={resolvePresentationColor("#737378", 'color', 'content')} />
     </Pressable>
   );
 
@@ -505,7 +508,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
     multiline?: boolean;
   }) => (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={presentationTextStyle(styles.fieldLabel)}>{label}</Text>
 
       <View
         style={[
@@ -516,7 +519,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
         <Ionicons
           name={icon}
           size={21}
-          color="#111111"
+          color={resolvePresentationColor("#111111", 'color', 'content')}
           style={multiline ? styles.multilineIcon : undefined}
         />
 
@@ -527,11 +530,11 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
           onChangeText={onChangeText}
           multiline={multiline}
           maxLength={label === 'Journey description' ? 500 : undefined}
-          placeholderTextColor="#A3A3A8"
-          style={[
+          placeholderTextColor={resolvePresentationColor("#A3A3A8", 'placeholderTextColor', 'control')}
+          style={presentationTextStyle([
             styles.input,
             multiline && styles.multilineInput,
-          ]}
+          ])} keyboardAppearance={presentationInterfaceStyle()}
         />
 
         {value.length > 0 && !busy && !uploading
@@ -560,15 +563,15 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
       ]}
     >
       <View style={styles.detailIcon}>
-        <Ionicons name="calendar-outline" size={21} color="#111111" />
+        <Ionicons name="calendar-outline" size={21} color={resolvePresentationColor("#111111", 'color', 'content')} />
       </View>
 
       <View style={styles.detailText}>
-        <Text style={styles.detailLabel}>{label}</Text>
-        <Text style={styles.detailValue}>{formatJourneyDate(value)}</Text>
+        <Text style={presentationTextStyle(styles.detailLabel)}>{label}</Text>
+        <Text style={presentationTextStyle(styles.detailValue)}>{formatJourneyDate(value)}</Text>
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color="#C4C4C8" />
+      <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor("#C4C4C8", 'color', 'content')} />
     </Pressable>
   );
 
@@ -595,7 +598,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
           busy || uploading,
         )}
 
-        <Text style={styles.headerTitle}>Edit Journey</Text>
+        <Text style={presentationTextStyle(styles.headerTitle)}>Edit Journey</Text>
 
         <View style={styles.headerRight}>
           {dirty && valid && !busy && !uploading ? (
@@ -607,7 +610,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.savePillText}>Save</Text>
+              <Text style={presentationTextStyle(styles.savePillText)}>Save</Text>
             </Pressable>
           ) : (
             headerButton(
@@ -629,12 +632,13 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
+          {!loading ? <Pressable disabled={busy || uploading} onPress={() => router.push({ pathname: '/journey/[id]/stops', params: { id } })} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={presentationTextStyle({ color: resolvePresentationColor(theme.accent, 'color', 'content') })}>Journey stops →</Text></Pressable> : null}
           {loading ? (
-            <Text style={styles.helperText}>Loading journey…</Text>
+            <Text style={presentationTextStyle(styles.helperText)}>Loading journey…</Text>
           ) : null}
 
           {error ? (
-            <Text accessibilityRole="alert" style={{ color: theme.danger }}>
+            <Text accessibilityRole="alert" style={presentationTextStyle({ color: resolvePresentationColor(theme.danger, 'color', 'content') })}>
               {error}
             </Text>
           ) : null}
@@ -645,7 +649,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
               onPress={() => setRevision(value => value + 1)}
               style={styles.retryButton}
             >
-              <Text style={{ color: theme.accent, fontWeight: '600' }}>
+              <Text style={presentationTextStyle({ color: resolvePresentationColor(theme.accent, 'color', 'content'), fontWeight: '600' })}>
                 Retry
               </Text>
             </Pressable>
@@ -730,7 +734,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
 
                       {showPhotoCount ? (
                         <View pointerEvents="none" style={styles.photoCountBadge}>
-                          <Text style={styles.photoCountText}>
+                          <Text style={presentationTextStyle(styles.photoCountText)}>
                             {Math.max(currentIndex + 1, 1)} / {photos.length}
                           </Text>
                         </View>
@@ -747,7 +751,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                           pressed && styles.overlayPressed,
                         ]}
                       >
-                        <Ionicons name="trash-outline" size={21} color="#FFFFFF" />
+                        <Ionicons name="trash-outline" size={21} color={resolvePresentationColor("#FFFFFF", 'color', 'content')} />
                       </Pressable>
                     </View>
 
@@ -804,7 +808,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                                 pressed && styles.pressed,
                               ]}
                             >
-                              <Ionicons name="add" size={28} color="#111111" />
+                              <Ionicons name="add" size={28} color={resolvePresentationColor("#111111", 'color', 'content')} />
                             </Pressable>
                           </View>
                         )}
@@ -846,10 +850,10 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                         scrollEnabled={false}
                         submitBehavior="newline"
                         placeholder="Write a caption..."
-                        placeholderTextColor="#8E8E93"
-                        style={styles.captionInput}
+                        placeholderTextColor={resolvePresentationColor("#8E8E93", 'placeholderTextColor', 'control')}
+                        style={presentationTextStyle(styles.captionInput)} keyboardAppearance={presentationInterfaceStyle()}
                       />
-                      <Text style={styles.captionCounter}>
+                      <Text style={presentationTextStyle(styles.captionCounter)}>
                         {(draft.caption ?? '').length}/100
                       </Text>
                     </View>
@@ -861,18 +865,18 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                       style={({ pressed }) => [styles.photoRow, pressed && styles.pressed]}
                     >
                       <View style={styles.rowIconCircle}>
-                        <Ionicons name="location-outline" size={23} color="#111111" />
+                        <Ionicons name="location-outline" size={23} color={resolvePresentationColor("#111111", 'color', 'content')} />
                       </View>
-                      <Text style={styles.photoRowText} numberOfLines={1}>
+                      <Text style={presentationTextStyle(styles.photoRowText)} numberOfLines={1}>
                         {draft.place?.name ?? 'Add location'}
                       </Text>
-                      <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                      <Ionicons name="chevron-forward" size={20} color={resolvePresentationColor("#8E8E93", 'color', 'content')} />
                     </Pressable>
 
                     <View style={styles.includeRow}>
                       <View style={styles.includeTextWrap}>
-                        <Text style={styles.includeTitle}>Include in journey</Text>
-                        <Text style={styles.includeSubtitle}>
+                        <Text style={presentationTextStyle(styles.includeTitle)}>Include in journey</Text>
+                        <Text style={presentationTextStyle(styles.includeSubtitle)}>
                           This photo will be visible in your journey.
                         </Text>
                       </View>
@@ -891,9 +895,9 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                         <Ionicons
                           name={cover === current.id ? 'star' : 'star-outline'}
                           size={19}
-                          color="#111111"
+                          color={resolvePresentationColor("#111111", 'color', 'content')}
                         />
-                        <Text style={styles.secondaryActionText}>
+                        <Text style={presentationTextStyle(styles.secondaryActionText)}>
                           Change Cover
                         </Text>
                       </Pressable>
@@ -903,8 +907,8 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                         onPress={() => setDateTarget('photo')}
                         style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed]}
                       >
-                        <Ionicons name="calendar-outline" size={19} color="#111111" />
-                        <Text style={styles.secondaryActionText}>
+                        <Ionicons name="calendar-outline" size={19} color={resolvePresentationColor("#111111", 'color', 'content')} />
+                        <Text style={presentationTextStyle(styles.secondaryActionText)}>
                           {draft.captured_at ? formatPhotoDate(draft.captured_at) : 'Photo date'}
                         </Text>
                       </Pressable>
@@ -958,9 +962,9 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                       <Ionicons
                         name="camera"
                         size={18}
-                        color="#111111"
+                        color={resolvePresentationColor("#111111", 'color', 'content')}
                       />
-                      <Text style={styles.changeCoverText}>
+                      <Text style={presentationTextStyle(styles.changeCoverText)}>
                         Change Cover
                       </Text>
                     </Pressable>
@@ -991,7 +995,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                 })}
 
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Destination</Text>
+                  <Text style={presentationTextStyle(styles.fieldLabel)}>Destination</Text>
 
                   <View style={styles.detailRow}>
                     <Pressable
@@ -1007,16 +1011,16 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                         <Ionicons
                           name="location"
                           size={22}
-                          color="#111111"
+                          color={resolvePresentationColor("#111111", 'color', 'content')}
                         />
                       </View>
 
                       <Text
                         numberOfLines={1}
-                        style={[
+                        style={presentationTextStyle([
                           styles.detailValue,
                           styles.flexOne,
-                        ]}
+                        ])}
                       >
                         {values.destination ||
                           values.place?.name ||
@@ -1042,23 +1046,23 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                 </View>
 
                 <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Country</Text>
+                  <Text style={presentationTextStyle(styles.fieldLabel)}>Country</Text>
 
                   <View style={styles.detailRow}>
                     <View style={styles.detailIcon}>
                       <Ionicons
                         name="globe-outline"
                         size={22}
-                        color="#111111"
+                        color={resolvePresentationColor("#111111", 'color', 'content')}
                       />
                     </View>
 
                     <Text
                       numberOfLines={1}
-                      style={[
+                      style={presentationTextStyle([
                         styles.detailValue,
                         styles.flexOne,
-                      ]}
+                      ])}
                     >
                       {values.country || 'Country'}
                     </Text>
@@ -1091,10 +1095,10 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
 
                 {!valid ? (
                   <Text
-                    style={[
+                    style={presentationTextStyle([
                       styles.validationText,
-                      { color: theme.danger },
-                    ]}
+                      { color: resolvePresentationColor(theme.danger, 'color', 'content') },
+                    ])}
                   >
                     Title, destination and country are required. End date
                     must not precede start date.
@@ -1107,7 +1111,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                   }
                   style={styles.visibilityCard}
                 >
-                  <Text style={styles.visibilityLabel}>
+                  <Text style={presentationTextStyle(styles.visibilityLabel)}>
                     VISIBILITY
                   </Text>
 
@@ -1153,7 +1157,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                       styles.pressed,
                   ]}
                 >
-                  <Text style={styles.bottomSaveText}>
+                  <Text style={presentationTextStyle(styles.bottomSaveText)}>
                     {busy ? 'Saving…' : 'Save Changes'}
                   </Text>
                 </Pressable>
@@ -1174,7 +1178,7 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                     : new Date()
                 }
                 mode="date"
-                themeVariant="light"
+                themeVariant={presentationInterfaceStyle()}
                 onChange={(event, date) => {
                   if (Platform.OS !== 'ios') {
                     setDateTarget(null);
@@ -1210,10 +1214,10 @@ export function EditPostScreen({ id, action }: { id: string; action?: string }) 
                 style={styles.doneButton}
               >
                 <Text
-                  style={[
+                  style={presentationTextStyle([
                     styles.doneButtonText,
-                    { color: theme.accent },
-                  ]}
+                    { color: resolvePresentationColor(theme.accent, 'color', 'control') },
+                  ])}
                 >
                   Done
                 </Text>
@@ -1819,3 +1823,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+const presentationBaselineStyles = styles;

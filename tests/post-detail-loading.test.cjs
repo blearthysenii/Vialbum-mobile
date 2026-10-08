@@ -9,7 +9,7 @@ function load(path, mocks = {}) {
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(path, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText, { module, exports: module.exports, AbortController, Error,
-    require: name => { assert.ok(mocks[name], `Unexpected import ${name}`); return mocks[name]; } });
+    require: require('./appearance-test-adapter.cjs').wrap(name => { assert.ok(mocks[name], `Unexpected import ${name}`); return mocks[name]; }) });
   return module.exports;
 }
 class ApiError extends Error { constructor(status) { super('Request failed'); this.status = status; } }

@@ -1,7 +1,8 @@
+import { usePresentationStyles } from '@/theme/presentation';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { LinearTransition, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { LinearTransition, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import type { ProfileTheme } from '@/features/profile/theme';
 
 export const MAX_VISIBLE_DOTS = 7;
@@ -18,6 +19,8 @@ export function paginationWindow(count: number, index: number) {
 function PaginationDot({ active, continuation, reduced, theme }: {
   active: boolean; continuation: boolean; reduced: boolean; theme: ProfileTheme;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const size = active ? 8 : continuation ? 3.5 : 6;
   const color = active ? theme.accent : theme.subtle;
   const animated = useAnimatedStyle(() => ({
@@ -28,10 +31,12 @@ function PaginationDot({ active, continuation, reduced, theme }: {
   return <Animated.View style={[styles.dot, animated]} />;
 }
 
-export function PhotoScrubber({ count, index, onSelect, theme, onInteractionStart, onInteractionEnd }: {
-  count: number; index: number; onSelect: (index: number) => void; theme: ProfileTheme;
+export function PhotoScrubber({ count, index, onSelect, theme, onInteractionStart, onInteractionEnd, opacity }: {
+  opacity?: SharedValue<number>; count: number; index: number; onSelect: (index: number) => void; theme: ProfileTheme;
   onInteractionStart?: () => void; onInteractionEnd?: () => void;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const [width, setWidth] = useState(0);
   const reduced = useReducedMotion();
   const selected = useSharedValue(index);
@@ -58,7 +63,7 @@ export function PhotoScrubber({ count, index, onSelect, theme, onInteractionStar
       dragging.set(false);
       scale.set(reduced ? 1 : withTiming(1, { duration: 140 }));
     });
-  const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  const animated = useAnimatedStyle(() => ({ opacity: opacity?.get() ?? 1, transform: [{ scale: scale.get() }] }));
   const dots = paginationWindow(count, index);
   const firstVisible = dots[0]?.photoIndex ?? 0;
   const rowWidth = dots.length * DOT_SLOT;
@@ -99,3 +104,4 @@ const styles = StyleSheet.create({
   slot: { width: DOT_SLOT, height: 8, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 8, height: 8, borderRadius: 4 },
 });
+const presentationBaselineStyles = styles;

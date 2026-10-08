@@ -21,14 +21,18 @@ type AuthContextValue = {
   quickSignIn: (id: string) => Promise<boolean>;
   signOut: (saveAccount?: boolean) => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
-  updateProfile: (input: ProfileUpdateInput) => Promise<void>;
+  updateProfile: (input: ProfileUpdateInput) => Promise<AuthUser>;
   refreshUser: () => Promise<void>;
+  applyProfile: (updated: AuthUser) => void;
+  removeProfileCover: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const sessionVersion = useRef(0);
+  const profileRevision = useRef(0);
+  const userRequest = useRef<{ session: number; revision: number; promise: Promise<void> } | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
 
@@ -63,12 +67,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await savedAccountStorage.forgetSession(id);
       return false;
     }
+    sessionVersion.current++;
+    await clearPrivateLocalData();
     await tokenStorage.set(token);
     setUser(restored);
     return true;
   }, []);
 
   const establishSession = useCallback(async (identifier: string, password: string) => {
+    sessionVersion.current++;
+    await clearPrivateLocalData();
     const token = await authApi.login(identifier.trim().toLowerCase(), password);
     await tokenStorage.set(token.access_token);
     try {
@@ -125,18 +133,48 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const updateProfile = useCallback(async (input: ProfileUpdateInput) => {
     const version = sessionVersion.current;
+    const revision = ++profileRevision.current;
+    userRequest.current = null;
     const updated = await authApi.updateProfile(input);
-    if (version === sessionVersion.current) setUser(updated);
+    if (version === sessionVersion.current && revision === profileRevision.current) {
+      profileRevision.current++;
+      userRequest.current = null;
+      setUser(current => JSON.stringify(current) === JSON.stringify(updated) ? current : updated);
+    }
+    return updated;
   }, []);
 
-  const refreshUser = useCallback(async () => {
+  const removeProfileCover = useCallback(async () => {
     const version = sessionVersion.current;
-    const updated = await authApi.me();
-    if (version === sessionVersion.current) setUser(updated);
+    const revision = ++profileRevision.current;
+    userRequest.current = null;
+    await authApi.removeProfileCover();
+    if (version !== sessionVersion.current || revision !== profileRevision.current) return;
+    // Reject profile responses started before deletion, including pull refreshes.
+    sessionVersion.current += 1;
+    setUser(current => current ? { ...current, profile_cover_url: null } : current);
+  }, []);
+
+  const applyProfile = useCallback((updated: AuthUser) => {
+    profileRevision.current++;
+    userRequest.current = null;
+    setUser(current => current?.id === updated.id ? (JSON.stringify(current) === JSON.stringify(updated) ? current : updated) : current);
+  }, []);
+
+  const refreshUser = useCallback(() => {
+    const version = sessionVersion.current;
+    const revision = profileRevision.current;
+    if (userRequest.current?.session === version && userRequest.current.revision === revision) return userRequest.current.promise;
+    if (__DEV__) console.debug('[Profile lifecycle] request', 'auth/me', 'explicit');
+    const promise = authApi.me().then(updated => {
+      if (version === sessionVersion.current && revision === profileRevision.current) setUser(current => JSON.stringify(current) === JSON.stringify(updated) ? current : updated);
+    }).finally(() => { if (userRequest.current?.promise === promise) userRequest.current = null; });
+    userRequest.current = { session: version, revision, promise };
+    return promise;
   }, []);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => { sessionVersion.current += 1; setUser(null); });
+    setUnauthorizedHandler(() => { sessionVersion.current += 1; setUser(null); void clearPrivateLocalData(); });
     return () => setUnauthorizedHandler(null);
   }, []);
 
@@ -162,8 +200,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [reloadSavedAccounts]);
 
   const value = useMemo(
-    () => ({ user, activeAccount: user, savedAccounts, savedAccountsError, reloadSavedAccounts, removeSavedAccount, quickSignIn, isRestoring, signIn, signUp, signOut, deleteAccount, updateProfile, refreshUser }),
-    [savedAccounts, savedAccountsError, reloadSavedAccounts, removeSavedAccount, quickSignIn, deleteAccount, isRestoring, refreshUser, signIn, signOut, signUp, updateProfile, user],
+    () => ({ user, activeAccount: user, savedAccounts, savedAccountsError, reloadSavedAccounts, removeSavedAccount, quickSignIn, isRestoring, signIn, signUp, signOut, deleteAccount, updateProfile, refreshUser, removeProfileCover, applyProfile }),
+    [applyProfile, removeProfileCover, savedAccounts, savedAccountsError, reloadSavedAccounts, removeSavedAccount, quickSignIn, deleteAccount, isRestoring, refreshUser, signIn, signOut, signUp, updateProfile, user],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

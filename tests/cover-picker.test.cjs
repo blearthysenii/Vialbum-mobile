@@ -21,7 +21,7 @@ function mount(count, onConfirm) {
   const module = { exports: {} };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/features/posts/CoverPicker.tsx', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText, { module, exports: module.exports, Error, require: name => mocks[name] });
+  }).outputText, { module, exports: module.exports, Error, require: require('./appearance-test-adapter.cjs').wrap(name => mocks[name]) });
   const photos = Array.from({ length: count }, (_, i) => ({ id: String(i), url: `photo-${i}` }));
   function render() { cursor = 0; return module.exports.CoverPicker({ photos, coverId: '0', onCancel: () => { cancelled = true; }, onConfirm }); }
   function nodes(tree, predicate) {

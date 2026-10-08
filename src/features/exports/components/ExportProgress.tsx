@@ -1,3 +1,4 @@
+import { usePresentationStyles, presentationTextStyle } from '@/theme/presentation';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
 import { LoadingState } from '@/components/ui/Feedback';
@@ -8,12 +9,14 @@ import { spacing } from '@/theme/spacing';
 import { radii, shadows, typography } from '@/theme/tokens';
 
 export function ExportProgress({ state }: { state: ExportState }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const message = exportStateMessage(state);
   return <Modal transparent animationType="fade" visible={Boolean(message)}>
     <View accessibilityViewIsModal style={styles.backdrop}>
       <View style={styles.card}>
-        <Text style={styles.eyebrow}>PRIVATE EXPORT</Text>
-        <Text style={styles.title}>Gathering your Vialbum</Text>
+        <Text style={presentationTextStyle(styles.eyebrow)}>PRIVATE EXPORT</Text>
+        <Text style={presentationTextStyle(styles.title)}>Gathering your Vialbum</Text>
         <LoadingState label={message ?? ''} />
       </View>
     </View>
@@ -25,3 +28,4 @@ const styles = StyleSheet.create({
   card: { width: '100%', maxWidth: 360, borderRadius: radii.xl, backgroundColor: colors.canvas, padding: spacing.lg, ...shadows.sheet },
   eyebrow: { ...typography.eyebrow, color: colors.accent }, title: { ...typography.sectionTitle, color: colors.ink, marginTop: spacing.xs },
 });
+const presentationBaselineStyles = styles;

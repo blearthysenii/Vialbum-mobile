@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet } from 'react-native';
 
@@ -10,6 +11,8 @@ export function PasswordVisibilityToggle({
   isVisible: boolean;
   onToggle: () => void;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   return (
     <Pressable
       accessibilityLabel={isVisible ? 'Hide password' : 'Show password'}
@@ -22,7 +25,7 @@ export function PasswordVisibilityToggle({
       <Ionicons
         name={isVisible ? 'eye-off-outline' : 'eye-outline'}
         size={19}
-        color={color}
+        color={resolvePresentationColor(color, 'color', 'content')}
       />
     </Pressable>
   );
@@ -32,3 +35,4 @@ const styles = StyleSheet.create({
   toggle: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.42, transform: [{ scale: 0.9 }] },
 });
+const presentationBaselineStyles = styles;

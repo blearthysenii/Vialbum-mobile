@@ -1,0 +1,473 @@
+{
+  "protectedFiles": {
+    "src/api/client.ts": "b2a7bcf3bd33de84381d5149a73263c8ce20b914e291336ec3978b857c226434",
+    "src/features/account/config.ts": "5341a76493a898df93202e88addc51487c4cb32100d2648faa75eb660407b0ff",
+    "src/features/auth/AuthProvider.tsx": "38deb3b4d983929876d4e5281b950049b142471159f8ccac80e2643efff73aa5",
+    "src/features/auth/api.ts": "d3f5334463c3e14e84deed1a869141998782024ad9bb25744ce4e7c1a5ac51cd",
+    "src/features/auth/cleanup.ts": "687aa37d1a0413c017e68bd4e7357c6fda1c07adf91297548c798c600c9ccc29",
+    "src/features/auth/errors.ts": "63103bc55e700e72f04960bdc6506272220e8209cb937dfb77db5c1b8b563222",
+    "src/features/auth/savedAccounts.ts": "9149836fb149085b74cc3a04371a8961175817aea5fe381e1cc00e7eafab1957",
+    "src/features/auth/storage.ts": "f5c2f0ec87f7bd8acdcda44a75dcd3429cf56fa06a01f6e185e651cc94ca0ae4",
+    "src/features/auth/types.ts": "c6c7f9121633825fa8adf7421208ffc8e7ffc1bb023776466d8830cd9a33567c",
+    "src/features/discover/api.ts": "512bca6fb0ab1d711a55a8371f1151911a016090fe79df349260fedf0f8cf416",
+    "src/features/discover/cache.ts": "3ed78234995ec6ed2cc8acb511be33ed72c36beb417fdab2d8d3e78457ac8c90",
+    "src/features/discover/hooks/useDiscoverFeed.ts": "1e2eaf65574578c007ad4be4f40370bdf0afa001518cba19dfe114a2c9ef2356",
+    "src/features/discover/layout.ts": "f2b8b5bc910f589197d0f9c0d3f653071087d842c74c529f5a61d04367b0a728",
+    "src/features/discover/store.ts": "78272811fb9fb7c25dc90c8d5d7caafc8c8e01571390f28a089170c709ff0c79",
+    "src/features/discover/timeline.ts": "f50a2ac8d711d4a3007c7e178ca8ce96d23e94165e42ab6b01f20990d6912d9b",
+    "src/features/discover/types.ts": "a6ddf777b75427b2af3a5d39f86490d065b785b705b4b25be48004ba052af590",
+    "src/features/explore/api.ts": "6ba028a277d1939609a4d77935a6d6a4e0316c64362d8f13f6a0baeef505630b",
+    "src/features/explore/mediaGrid.ts": "8511ed16302711a1c82983a865e6df3bada157c91d04f7445d919fa8a0771353",
+    "src/features/explore/store.ts": "0a3fa1fd8697ed7db2d28d0e03ba40d3a704b558245748f520e3966ddc0599f1",
+    "src/features/exports/api.ts": "d8a5ce315a34493ec71435792ab182020f0020fdf4dd77e0629082a075decb33",
+    "src/features/exports/utils.ts": "c260b5936d83e3a5b6d448d4cb757f7cdb9ae87c7fddada94cabb0a7f6d5a095",
+    "src/features/follows/api.ts": "543ac457018a68ef5e235993791cde3c7f115befc45c0cfae6911ea28b49491a",
+    "src/features/follows/cache.ts": "e2ca7b295cf36f6a7371fcca22ac8331b7d69ec43e20ea12e96e40e23ab96c64",
+    "src/features/follows/statsCache.ts": "f3134d8a5f435e82a816b6428e3e26d42d34d2be85d384fc0efa427c8c06ac8e",
+    "src/features/follows/store.ts": "6a1a42d2638ba53a342b47f4cf343ab70ceec209989855b84156be42f7bfd5f7",
+    "src/features/follows/useFollows.ts": "5fd6a2840a94d304fbdecc0fb4345a8f0c3ed83b0e7655df8b3cf10f4758bd5b",
+    "src/features/follows/useOwnFollowStats.ts": "c261d4fb58a443f62c24cda23951255bb788e5b1c0519f9afe77897ab0ea259f",
+    "src/features/journeys/JourneyProvider.tsx": "3fe516f9b561144e7421b4a1d6defc795690aba094fe33699c596b09e45670d1",
+    "src/features/journeys/api.ts": "4c7c51503e08adcffb1f139a7546188bd57d3a21f64adde83c34a972d5e0b83e",
+    "src/features/journeys/countries.ts": "8874dc7af144e831dfd3056de4e36f308e433fb7beadfa6d7f416798b7c610dd",
+    "src/features/journeys/detailsCache.ts": "f0346bfc7fda5a07fbbcc690d27c2e693344b37d6c1325cc97177424c1b69d57",
+    "src/features/journeys/draft.ts": "d60da2d8039ec68c64a97352ca3f1e5965e1a0ecbed153d29fe268860d086018",
+    "src/features/journeys/draftStorage.ts": "f727a14be87efc231e8ca49163753ea57b7a90000f5488e6b3cfea5790af3373",
+    "src/features/journeys/library.ts": "acf4655d911207af31a2cbfbbd2609d39426a9b9763135b8274404ff2b2be44c",
+    "src/features/journeys/profileStore.ts": "81aa989f7321d6fb65afe3062403d8aa63a22be7bc14260cfac8742e58b1e343",
+    "src/features/journeys/publishDraft.ts": "1d97ae6ee3b1fc04a59a58a4493c604dd0e29d09fcb22cb2a084a3b888903f2c",
+    "src/features/journeys/stops.ts": "392d9f653a9d432c94aad70f8b92da34134e7492a0838be3ff05d1d5add2b4bd",
+    "src/features/journeys/summary.ts": "57cc57b39e2b1566481826e6e2a31c9d5a375bd8e6200491ced85d703d1b1c46",
+    "src/features/journeys/types.ts": "7659371364c6cc566acedc0a151e183b651784f67aa15426dee68657cdb8a583",
+    "src/features/journeys/webDraftPhotos.ts": "acdfff85442cafdf578053c4f73c3825b44d621240e005f64169053b6ee34726",
+    "src/features/map/api.ts": "82841cb328c6f4f96f2a3d16d0bbb5fd8f7abffc2f90471453c6f209ccc29d51",
+    "src/features/map/types.ts": "37c78f57edbe6742444163898c3089690494d8eb297353865386ce88c3bb1660",
+    "src/features/map/utils.ts": "9eaa25e6058fa6d44d6cf02b7d9ed27b2ebcd5aa5c4c5e2192e89184cda3b343",
+    "src/features/media/api.ts": "94d2d531d3395fa15ae05dc32d357c606de4e11c7d228f97183bb41c6babd337",
+    "src/features/media/components/JourneyThumbnailImage.tsx": "af6c6276d47b53280323d245d4ceabc56697e026a508009b294a16b6d808f692",
+    "src/features/media/components/StableCachedImage.tsx": "52466c03fb1afc64eb957a09a2d442b339082799087d27ee783a90ec9c25300f",
+    "src/features/media/decodedThumbnailCache.ts": "6bc16ad28c0694faba3b935c5e430807632a616ac3a493a33db1d3315c97bf0b",
+    "src/features/media/imageUrl.ts": "a8dfa4818fdffa6eec31749ad523119286f454982f855089e09b3e974eddaa77",
+    "src/features/media/photoContext.ts": "8d91950cc40e991b3aba1b65490a6e415a12ae18cf264e82755edd4232c9140a",
+    "src/features/media/picker.ts": "9f6bb5fae40d914dfda68aed8489a7877e116f04ef6ac0b354800b2d9a2a20fb",
+    "src/features/media/types.ts": "2b335fdcf9444aabb1c6c144f2d7339f8f7e8ff50b1e6f6eeaa781880b70f8fc",
+    "src/features/media/useViewerChrome.ts": "c2dadde8da11198b0435e9441c4d558d03c6da9e9925a204cc3a32317702c56c",
+    "src/features/media/utils.ts": "1c4e26d2de1c0a687a63f8f3154d064a60295e38019c08315ec5b03457e1fbbe",
+    "src/features/media/videoEdit.ts": "36cf25f168c46cf84631e66e320dd99dabf6e5158b256f268c627891d44fd65c",
+    "src/features/media/viewerGeometry.ts": "a4e95df8319e23915f215e170246a23b465a529660ee070f43a24e424af410e7",
+    "src/features/media/viewerSelection.ts": "4c99e4b0e3ce98d61b56bb562f3002db829d8668733ee8c5f9e80f6054082620",
+    "src/features/memories/api.ts": "a102cc07bc68cd5f30ae29ca9b114533ed4f191ec8252d7d27540808bbfa8bd4",
+    "src/features/memories/types.ts": "c1bdf0061b75b759c7eb480372dd8f97d8cbb73b050dd09667249459617c9011",
+    "src/features/moments/api.ts": "1178a6f57c9bb5039b2af18e94e4608b17e5db03b52fb3e74b1470fe7e620f50",
+    "src/features/moments/completionDates.ts": "521a22ef96d5b7a57b505250b387e9c2d663ea2dbf6d6e0b4a878b6b62bc5244",
+    "src/features/moments/gridCache.ts": "9c5a4cec9ea4b5a3b82448b78055fb096af46ef1d3a1b8d97ba9a6be8cbd0e09",
+    "src/features/moments/journeyTravel.ts": "ee9a64c18d393c3c1341b07c1486bbc2e75372393356ffa42ad50219b2d3534f",
+    "src/features/moments/playback.ts": "579371e6259b1f4eb146bae57bfbaaa2bedca043c3a92d961dd102914ac1c1b0",
+    "src/features/moments/publishMoment.ts": "2b5d0f1e9d1b6b250cda6a2706ee6c64052ea5dd4efbdf7f7ce4362849ecda1f",
+    "src/features/moments/scrubPreview.ts": "3888cdc0c771239a768b235d384803520c26f99e364206a9870be7a9897d4778",
+    "src/features/moments/suggestions.ts": "fb78b245806d7b9f6e34ea4acfd38d10e97c7840206e084518aada1a1628f856",
+    "src/features/moments/temporaryPlayback.ts": "2a9642318e835560e04468ee9f21f008c955758a829fb8029e9c5cf838caf0c2",
+    "src/features/moments/timeline.ts": "33f9e6e9468aaa5568e0d2ee6758f520bea45e62600ca78862a6a15cad07345f",
+    "src/features/moments/types.ts": "df8374b04a1aac03b39d3c8355e9124368f403a3cbf0c621f93e2c217242b994",
+    "src/features/moments/useProfileMoments.ts": "4a18374ec9caaf732e4e3774dd8b65564fa624167991f56c3bcade7f29dbb53f",
+    "src/features/navigation/geometry.ts": "3435caf97dcb17d9b6aa0ad8294f93af6dd9d57d667284bc76bd201f80008085",
+    "src/features/navigation/interactionLock.ts": "1f1556074af03b7c7bff28636501942bce62a6e274d7cc4d85b14058a29ab6f8",
+    "src/features/places/api.ts": "a2f51dba72a0e4d2ce679ac044dcd222dcd29bed4f09d66c41932cd5d1b0ff33",
+    "src/features/places/types.ts": "053418cb255f03b3d1f8056142a5b0c3a61869f3ef4e1849cd88ac4129af63ad",
+    "src/features/places/utils.ts": "5f3901d32145a53470d4cfc7776026413ff4c70245110f1de71f6f9669ce5822",
+    "src/features/posts/cities.ts": "0741c8288c64716c66bd85ed1fe9fbb71f1a23e329ec37ea48e8a8bb93587595",
+    "src/features/posts/content.ts": "083822a162b8ea265edc7825bbb4f6cc5dbebb08b1883498c7582d0c9127e7a0",
+    "src/features/posts/data.ts": "5303a6a85e07e552a116b7b17af0cebb333e93c99302356bb469fb34d5058d7f",
+    "src/features/posts/editReturn.ts": "53eec5450aacf7dcde55b2f17293252b3a334226ec62afc128b095003a51288f",
+    "src/features/posts/mediaShape.ts": "fd40b07fe43628232a00e23e36906273c11675340b88c5a216e81f80d4ff7f8d",
+    "src/features/posts/usePostDetail.ts": "e6d864cf1a53c7670a90ed59d777e8e18fbb864648f6f4cecd7ebd00bdf942ca",
+    "src/features/profile/components/ProfileJourneyGrid.tsx": "af05177caad3b65533f8ec16e133d77cf6a5686fcf7a4b718b53347f5cf2e8b7",
+    "src/features/profile/dataCache.ts": "d55e1d49d593b5af0aa2869ef2b0c8403755b056d0b7f748038859ba94e39d47",
+    "src/features/profile/refreshTiming.ts": "4ec56161bbf4ba15f421c87f6241e603b0e5a4b851828c9afcb5cc9eaf1ee689",
+    "src/features/profile/share.ts": "e042e66dc605378bafaa80e2db9fc0f69823c987e9094237732ec9d956990f98",
+    "src/features/profile/types.ts": "37bf76d8de6205cf71e52713458e5949814d9ffe7a99511871090c7dd6a25d16",
+    "src/features/publicProfile/api.ts": "9cb31f338daff1b64459c59f471a755bf147f9f1fcd13e2d149e004102fe81e2",
+    "src/features/publicProfile/cache.ts": "daf582081b51de1e41335f9dd6d5ef785925680d1a65e6d319d0fa5cd5a711a6",
+    "src/features/savedJourneys/api.ts": "42c76ec5eefb9d14db2e072beca1e7711b29bf1da39df1310786929c73211a6f",
+    "src/features/savedJourneys/cache.ts": "bd0568bf0f3b1be908e7d483c131532861720e29b4c96a39766d4f41038b11c8",
+    "src/features/savedJourneys/store.ts": "a75a701b622c50f58b03e0546bd5daf25b79807ca0cf10eea96e04878789f37e",
+    "src/features/savedJourneys/useSavedJourneys.ts": "a2f8e5eb4838e72593e0057cb025ca0220c198223ef3262a190174965b0d28f2",
+    "src/features/search/api.ts": "a72a5f651fe9323741a8dff4ed32669b7e5d6c9e80b67b6e9a624b4b797b5f8a",
+    "src/features/search/storage.ts": "f422fcbbeefc7842d25a95f825fe2871cd037b846f719396b57f88bf0ec452e5",
+    "src/features/search/types.ts": "100de191e41fbff65458de9d3a8d6604f4608d0a03d33903d3a6b44d91b8c4c6",
+    "src/features/search/utils.ts": "e1e61b12915cd97233212b71f9d5e631f244f51dbf035fb292a8cbc9905ca9c6",
+    "src/features/stays/api.ts": "9859356d69f1c6ceeecf9b9d90753455d1dc364c84cb03a33e425316f127a352",
+    "src/features/stays/editorDraft.ts": "573130d53729a173129617f4947882501051dd5a87f18a5a76df3b0b7318258b",
+    "src/features/stays/publishEditor.ts": "381048843761400eb8c3746951a6767171c0629c3359f13f714a47841cf20122",
+    "src/features/timeline/groupTimeline.ts": "96e34e24f3f57ae69f6df179559eec4746f104f3347a3d2612828135682318c8",
+    "src/features/travel/api.ts": "c107b38315b04b84caf3077c027ed945112fc6d5f3ed2ee44b1000bfacfe13b3",
+    "src/features/world/api.ts": "0947a7bd1611cbab5742806f6cff6ce2a63fe0e871e2e3e4e48f79907f450911",
+    "src/features/world/cache.ts": "376a0e719f92fd27d03e85a021e27c9645e8c8539f2bad8a2f72f78c6708da35",
+    "src/features/world/photos.ts": "d8291a33c7c71a9b4caf0b7861cbd944eb6d1d37cf78d7698b301fc38e91c74f",
+    "src/features/world/store.ts": "3890353855330822a79783aef7c7b67f53a5398ba588f733d8933924b1c15bcc",
+    "src/features/world/viewport.ts": "a3dc2aadb80b457a7b53cde60f4bf28e82d27d27e6dad558ebe88e27f5b6af64",
+    "src/theme/colors.ts": "63a403a87f0df0bef64ce33443860f434236b421be4bf6c8b99cae56b1097d33",
+    "src/theme/spacing.ts": "c0946fe06c9e11673b0666aa87d73124065c59922cfd8e24ed91489acd498875",
+    "src/theme/tokens.ts": "4c5f5d609182dbf4a6006de68dfa9409becf96dea72dc7465e05e15b35323dd6",
+    "src/utils/format.ts": "71f7ecd2cc455dfa400fa837ba4cb4d23973f3195f9274d4e846d1928191c71d",
+    "src/utils/refreshOutcome.ts": "a92f30e68a124c5a0d59240d3ca648b712fb1a77060a6d53fa1ac6a8f21070b0",
+    "src/utils/sessionResource.ts": "4f54a01b8db4ea92ab82c55978e1547a0e6e12ce1ee0d2e134a06f316b3e70a7",
+    "src/utils/urlRenewal.ts": "31389f644f02667df35778a90845317548264b8e5f4d047c5152c9ba592f9a48",
+    "app.json": "42828f04ab8091d7be024a80b172936d96664cc6fc8ab20e76d67ecb496ea41c",
+    "ios/Vialbum/Info.plist": "fb0fe91308f8837107cff45194513e9eca5d696f91f550ea9442d349551f8c7c",
+    "ios/Vialbum/SplashScreen.storyboard": "54c993cbadc664e0f42d856f9e973bc5e5f99fad40eeb5e8910f31ae5d141541"
+  },
+  "lightStyles": {
+    "src/components/JourneyCard.tsx": [
+      "1da71adee2781e416b42903774a7783000291616eae2558175cf1105791cb86c"
+    ],
+    "src/components/launch/AnimatedLaunchScreen.tsx": [
+      "80889e858781bd0ed7a509eb73acbcf7127250500065d4716bea6132a497d278",
+      "0333c9f19b2f286eae9af46ae8eb7ad08147e9357bb7ccafa7caf6dda231a314"
+    ],
+    "src/components/ui/Button.tsx": [
+      "b0cbf31eddf63da8e3f80354f5154e16f8a9e69b274aad19867fb9492fb9919f"
+    ],
+    "src/components/ui/Feedback.tsx": [
+      "1b50914b8a5c8c6189d3f6e8567e198a41801595b1b89750c48489b70ddc8401"
+    ],
+    "src/components/ui/Headers.tsx": [
+      "0cd7181d1fde60275a20f82b92976b3d59c3e44e5270fa2ce544215d03f4219a"
+    ],
+    "src/components/ui/Metadata.tsx": [
+      "46dfb2a71818bd8747fc271502cf1240b8efd43c577302ffac634b5ad64e36aa"
+    ],
+    "src/components/ui/TextField.tsx": [
+      "b84a095280853dbdf7f62c93d0a255ac42a9c1445d0f07d06d615269cdc959ab"
+    ],
+    "src/features/account/components/DeleteAccountSheet.tsx": [
+      "da82d126b86c23081d2de050abc11108d52af874757dbe1de9eab82c0a25eb9f"
+    ],
+    "src/features/auth/components/AuthScreen.tsx": [
+      "9f3889226d5cacd58b7ecfa497907859bd42cc7b40e7e1e7cc1195066474b6b0"
+    ],
+    "src/features/auth/components/AuthVortexMark.tsx": [
+      "a42f5564bd5a3be1f6b8cbc48f5969225d254109bff78be5c0ac6126dfc97163"
+    ],
+    "src/features/auth/components/PasswordVisibilityToggle.tsx": [
+      "a73d0cf2733aad62062499693a4e73bdafe08b4341c8edbf32a6f38095804a63"
+    ],
+    "src/features/discover/components/CreatorRow.tsx": [
+      "a9304b528ebff85a320120e3302af1a16e81b8044e56d71bbb17d2f01bb13801"
+    ],
+    "src/features/discover/components/DiscoverFeed.tsx": [
+      "ce179696623cb959f81441d44b625845d332578ea64c9ee9fbd9a36b0630703a"
+    ],
+    "src/features/discover/components/DiscoverFeedback.tsx": [
+      "d3c293b9ac673c12e74b40cabdb800260fdb8a629b6007c7768c0366df8034ec"
+    ],
+    "src/features/discover/components/DiscoverJourneyCard.tsx": [
+      "30850ac63faf70034d7482e04c3084c69ae82edfa6cca92b5f7cd123ecf634dc"
+    ],
+    "src/features/discover/components/PublicJourneyMap.tsx": [
+      "0eeb18cddbdbf7b21bdeb5bf1d6b6f9ca24b349c360bc44a5683121a21b8d8b8"
+    ],
+    "src/features/discover/components/PublicJourneyScreen.tsx": [
+      "5b267c6efca0d12ace91a9db262d2f9d336eafd589e1782119c91dfc00ffec9c"
+    ],
+    "src/features/discover/components/PublicPhotoViewer.tsx": [
+      "7a72d543b58a8aeaba984ec8cf9b43d217c0d6069ae07d783862cda944f25bf1"
+    ],
+    "src/features/explore/DiscoveryContent.tsx": [
+      "196b9f384a7f27278cc0fcb34429010ba78941e8d2fb84d6f61c7ff6ecdec0b0"
+    ],
+    "src/features/explore/ExploreScreen.tsx": [
+      "ea0c96959f0978cfe5aa172f510819b4672b1db426af0fb15f201ca440c49149"
+    ],
+    "src/features/explore/ForYouGrid.tsx": [
+      "021497e56c6c74062235f20ff998a92c3c4623b5882ba41550d9904df5c21c63"
+    ],
+    "src/features/explore/PlaceExploreScreen.tsx": [
+      "e2accc8a54890a0da36cfd7ba9fa15c476b13470f7b2bdd6465876e4d493ab07"
+    ],
+    "src/features/exports/components/ExportProgress.tsx": [
+      "5474f1a487d471042dd1578eab38175129901e40e7e68698491f5782fd02df96"
+    ],
+    "src/features/follows/ConnectionsScreen.tsx": [
+      "0b899eddfbe0aa1a528a00d76e1b75a77120d436e6f4a465e617b4e0625ee1f8"
+    ],
+    "src/features/follows/FollowButton.tsx": [
+      "3e75f02972dd73954c291ba17de9ff0f095bda8563aa1a1cfcc7373d482293de"
+    ],
+    "src/features/journeys/JourneyDraftsScreen.tsx": [
+      "a0e1e54eee1ffc00e929b7ee2ff63903bcb60ca532962f91815bb9e80a5c9679"
+    ],
+    "src/features/journeys/LegacyJourneyDetailsScreen.tsx": [
+      "4a32b9581c7f966d7ccc77ac78976dc041ec78761ac227e2061c43a0642601c0",
+      "0fa848c0cff4e6b3ec1b4a63b6172d3b6010b18cb06464f7ef4ccde9c47d9885"
+    ],
+    "src/features/journeys/components/CreateJourneySheet.tsx": [
+      "2378262d05799d6ac80a7a721f3a633c3293660a5c636b0fa3c2b8ffd694d019"
+    ],
+    "src/features/journeys/components/JourneyDetailsStep.tsx": [
+      "e4ca3a867ee1206056c405fecc608609c5545284a0546e3b2c777f5e5f2563b3"
+    ],
+    "src/features/journeys/components/JourneyForm.tsx": [
+      "9661e6381a586ba0d142850f878beb128950852a6fd04138c4c745de4ba2ff35"
+    ],
+    "src/features/journeys/components/JourneyStats.tsx": [
+      "25a48615bfc434d9b6515bd7273557254ced8ee137141631a2bce3d8a6b75980"
+    ],
+    "src/features/journeys/components/JourneyStopsEditor.tsx": [
+      "b437783d005a66c0b7ee6e4f1dab3108bf0313d90e0001b588c71577170798e6"
+    ],
+    "src/features/journeys/components/JourneyVisibilityField.tsx": [
+      "b9683135fbefb37d1f45151356f35f9609c2273fb12eb768a8b0f11372dac1ca"
+    ],
+    "src/features/journeys/components/NewJourneyForm.tsx": [
+      "f8eadb3607834ceab50a5a96bdf6f327cf0f665eda9c2bc0ffc12b99ece8d87f"
+    ],
+    "src/features/journeys/components/PhotoEditingStep.tsx": [
+      "e03be5d63812eda902d5c797f9052cf20d17a68f1d53efb9d4fb7b7f86b743e1"
+    ],
+    "src/features/journeys/components/PhotoSelectionScreen.tsx": [
+      "8fa09579747ccad1e7326cca2564d2cc276f9c9f9caa58ba30ea8cd0378ce3f7"
+    ],
+    "src/features/map/PersonalMomentsMap.tsx": [
+      "95cb692dcd98bd4cee19b0b84887195b2e80c8d2bc78739bcfa56e83ce45e62a"
+    ],
+    "src/features/map/components/MapMarkerView.tsx": [
+      "17d65f40a7d646243d2112e00aff9d1a36f5703f2079989d7e858dab99a5cc63"
+    ],
+    "src/features/map/components/MapSelectionCard.tsx": [
+      "c9a6f5f86f8efcb79252ebce27298aae4a4bcf1ff89974cc1a8069a936a15cbb"
+    ],
+    "src/features/media/components/PhotoDetailsEditor.tsx": [
+      "f411c0d39e87048f4fd08c88f9b21f21cd47c6aebfcb6dd481fa11ea3d13e6af"
+    ],
+    "src/features/media/components/PhotoGallery.tsx": [
+      "56bac1cd30e20f1aa4a580ef22db5010931b1753beb79f2e6cbb47e0fb5531c5"
+    ],
+    "src/features/media/components/PhotoUploader.tsx": [
+      "9d2f8248b954976988758f0c18e723db9b4984149a488198094c927ff3994a1b"
+    ],
+    "src/features/media/components/VideoEditor.tsx": [
+      "c6234ee193f6bbf4c68a11ada1a95e9299bd0295f0af6de91576bdf76caf498a"
+    ],
+    "src/features/media/components/ViewerCaption.tsx": [
+      "2006630ac961045ae8d667a8c075137e70090036f0241617b88ac5e2e5126345"
+    ],
+    "src/features/memories/components/MemoryEditor.tsx": [
+      "f2b2fe5f06d15cd8b133b2a6fed6ea36512731a2b5af724fedca8b753d58cad3"
+    ],
+    "src/features/moments/CreateMoment.tsx": [
+      "7a859341adbd002ecc01ec4aeb77d345d82552d923f1291a779553757482ae90"
+    ],
+    "src/features/moments/FlightSpeedIndicator.tsx": [
+      "43a8a63e76de17881c44f7fbb81a94644a37e5a298f96904b92128de6b9a0bbf"
+    ],
+    "src/features/moments/JourneyCompletion.tsx": [
+      "9fdec17dde87e8ad3da0fa84d0a377ea5a1d4d3b0ba944d9dc4506053b93fba5"
+    ],
+    "src/features/moments/JourneyTravelOverlay.tsx": [
+      "87ec17827d17a33bb77ba4d405706a55f7a67a3febedbce3464ec9abc9bb71ed"
+    ],
+    "src/features/moments/MomentFrame.tsx": [
+      "343d34a559c15472af2268b0edca3117697482e87565adf50b68e3f23b36b004"
+    ],
+    "src/features/moments/MomentGrid.tsx": [
+      "4edf132fbfe1465c904fc249cb03d1bf1c456a02319422bbe5d65c8f7e15d258"
+    ],
+    "src/features/moments/MomentOptions.tsx": [
+      "2ee89f4464a9b4ca465798c26f457941bd7bf1c3c537ec6dc5033273c14c8bd8"
+    ],
+    "src/features/moments/MomentsFeed.tsx": [
+      "53fd716b0566d8d804119569b6a37ddb2f21db3eb4c04e1043f28f035bc64909"
+    ],
+    "src/features/moments/PlaybackControls.tsx": [
+      "a4f26b32f6fff8c50783316aee2d96a87965395f1b4308347d4d3a0d9905b422"
+    ],
+    "src/features/moments/VideoSurface.tsx": [
+      "053db5fb37ab7aae183b13a01b7db71bd5391b2b3890c732f7e7c0bfcebf6a11"
+    ],
+    "src/features/moments/VideoTimeline.tsx": [
+      "d00152de56c8af3ba700a25c3e436802c780cc7c8d3dab42783c164a3995f9ce"
+    ],
+    "src/features/places/components/LocationPicker.tsx": [
+      "b34e7de4ab7c4c179a0372ed236f02781f31e770872d294746130732a70dbd6f"
+    ],
+    "src/features/posts/CoverPicker.tsx": [
+      "8a2358a4f4eeb1e49c856e020b0f0445a25e9ffa1894e8e1d919c433a4d7c382"
+    ],
+    "src/features/posts/EditPostScreen.tsx": [
+      "0d673222ce549d278670ab3f1e883688492a009d34b59a9addc891af39bd6383"
+    ],
+    "src/features/posts/PhotoScrubber.tsx": [
+      "77416a7cbc69cc897ea298192344fed96cd99563c3fa323294d7b994ced85c61"
+    ],
+    "src/features/posts/PostContent.tsx": [
+      "1648069d6712a682b97e2612fea786c569423232b3e23c5af73a5799a79f7fe7"
+    ],
+    "src/features/posts/PostGlassButton.tsx": [
+      "37f6e977a50d217956b4262eaff0a07630b011e3fae6f834a07b2d03c0c9b2ff"
+    ],
+    "src/features/posts/PostMapTab.tsx": [
+      "a4c0d5ac5ff4a3fe5521a3aa992235f63c5f0edacbe2e139b6e3990e19d52dce"
+    ],
+    "src/features/posts/PostTabs.tsx": [
+      "b9952fdd005cc12c11f5e4229cc235e0a7ca69b447c3ca9684fc156da1d25ce9"
+    ],
+    "src/features/profile/ProfileRefreshIndicator.tsx": [
+      "282b890def75b4cd0adab104c0d36ca10c318c88e8cf904c83cb4d6f087b53e3"
+    ],
+    "src/features/profile/ProfileSpinnerGlyph.tsx": [
+      "bd2128c8929639f19edb88d68b42089a613f23f5820dd756a0ff328c9abb8f59"
+    ],
+    "src/features/profile/components/ProfileCover.tsx": [
+      "fed8acfde0caa5dd8b4d006040d653e6633e04fe432837f2886e883f9a8dc649"
+    ],
+    "src/features/profile/components/ProfileFieldEditor.tsx": [
+      "f67b16eb631ec5b85a87bb5d9ffc0541c5018f5b327b8f545b12b9f4ac5c7fd8"
+    ],
+    "src/features/profile/components/ProfileHeader.tsx": [
+      "9b029703c1c4c21a5fc9690209317d470f381662063643bd51b86757154ff8d4"
+    ],
+    "src/features/profile/components/ProfileJourneyGrid.tsx": [
+      "bfe5dd8f4d4543c101df43ceae6159ff9681f1991d28a78736122035c7df23f9"
+    ],
+    "src/features/profile/components/ProfileJourneyRows.tsx": [
+      "ddc50e0728388389854e1c7bb2555f0cdc96d0c3f6c339934366b01a24af0922"
+    ],
+    "src/features/profile/components/ProfileMediaTabs.tsx": [
+      "eb9dc936c4400b8ea536c99cd715c0aad33216b1ef4dfdf33726176a71a3568b"
+    ],
+    "src/features/profile/components/TravelProfileContent.tsx": [
+      "a5753a6b3274e40f0ec62027bd96a112096343ddcff0e49f3c6ab4b163f38e01"
+    ],
+    "src/features/publicProfile/PublicJourneyCollection.tsx": [
+      "549f1adebca9dc88ffa7f552da21e4d05c199425689de6d2111e3b1c98439c6f"
+    ],
+    "src/features/publicProfile/PublicProfileHeader.tsx": [
+      "c80db843f7f9d6c3690f9efd8d0a47ac33a628add985bda47805a642b14d7db5"
+    ],
+    "src/features/savedJourneys/SaveJourneyButton.tsx": [
+      "5515922a40bae8b6155668ddfc7194f4b191c6ef4397a567ab8e7b5cafe5ccb0"
+    ],
+    "src/features/search/LibrarySearchScreen.tsx": [
+      "a52a73cf1e03f50b8d9452855ed5d202580c16799b677d7e8a23d31a121a7490"
+    ],
+    "src/features/stays/StayCard.tsx": [
+      "ba503b2166033d8ff0c5d4bb6f6ec51b9d866c38d9e9d83fcaae26f5cc6e58e2"
+    ],
+    "src/features/stays/StayDetail.tsx": [
+      "acf3ae18486c8a409a9ab357d476db57b4b3bd1f126fd71bf4c5c443c2d8a74b"
+    ],
+    "src/features/stays/StayEditor.tsx": [
+      "7edaca75d6d1139f1957315dd49bd6e2f6212a80498f1bbb13b3bf0406d60e18"
+    ],
+    "src/features/stays/StayGallery.tsx": [
+      "a72f388cee2df32e43a64f3c9b1fc00a07fb7d4d8ac3136ebeb3f1faaf148a9e"
+    ],
+    "src/features/stays/StayUI.tsx": [
+      "3c64723b3f657f78db8fc0e33d6608ee19caed888d960e6a8c03e968511a0bda"
+    ],
+    "src/features/stays/StaysTab.tsx": [
+      "df1b84ebd00290e89cb7a2c2ac23cc9c308154c8675024b40c649d5c1ff17915"
+    ],
+    "src/features/travel/CountryScreens.tsx": [
+      "2e6422234ee383a1edece560672bdb5a82c0017c69b245d6d7fc8f1568714fbd"
+    ],
+    "src/features/travel/MyWorldScreen.tsx": [
+      "5f12a478c37d7fb1205cfa1b24014a067f3097d23fc17a1fc7ed19d5b408f6eb"
+    ],
+    "src/features/travel/PassportMap.tsx": [
+      "1e982eae242509459f41de2267e6ccef8148873c5be77b72daaa7829ffaf24bf"
+    ],
+    "src/features/world/WorldMapScreen.tsx": [
+      "fd6b5c1605fd3e3118f596e0eb3a879c7cc815b39b88eff095622a1973b75cff"
+    ],
+    "src/features/world/WorldMarkerView.tsx": [
+      "529e627fad4becfe0bc241fe34ed0c07cd12913390310bbcf29f48ed137bbcb6"
+    ],
+    "src/features/world/WorldPlaceSheet.tsx": [
+      "d37e589c2763246882b7ffa6e9e53636da409aab61c233abb20d7e79ebad87fb"
+    ],
+    "app/(auth)/sign-in.tsx": [
+      "63d608b34aa179e638eae92e6ae8ebc5e452dbace28c73150be25831824b4c00"
+    ],
+    "app/(auth)/sign-up.tsx": [
+      "24b0c0cd15b70259ad72dd9643535cbdfd7869904bc6d44a11f3dd52f6c80d58"
+    ],
+    "app/(tabs)/_layout.tsx": [
+      "8dd513dc6dc158b569f0e013a37fb121f826837d25b41b6cea00beafaabf8d4d"
+    ],
+    "app/(tabs)/profile.tsx": [
+      "b1ba0a6302a5fde1ab1aae1253596c2f0b9eb41706abd394b2339976c48748f6"
+    ],
+    "app/_layout.tsx": [
+      "1bf4c341157dc2b811ab8bf286bb318b03e668c4d98a12ac3d1936e8e804a200"
+    ],
+    "app/edit-profile.tsx": [
+      "9d1acd4098df649b3ef672137f50d818e6f83fe19b321d609cca859464a385e9"
+    ],
+    "app/journey/[id]/photo/[mediaId].tsx": [
+      "7dfefb028460a12d774f4b02ca0e13ed2be128d7e0e55099dac0dfb88a4200a0"
+    ],
+    "app/moment/place/[id].tsx": [
+      "466a8f94db02edab9c21bb0959a731c73066aa59a2f95fa83bd07b67959ab4a3"
+    ],
+    "app/settings.tsx": [
+      "6c3b4d6daa146fe0cca98aad621029a7a3d2eb0a26e09a2a732cfa0944fdab31"
+    ]
+  },
+  "lightPalettes": {
+    "src/features/auth/theme.ts": "94ce5b2c9fefc180b7b3ff6f6d4ac3a05da60c4aec6d2f5610f5292ea527e688",
+    "src/features/navigation/theme.ts": "dafde2f747de185d77ea9faa732d9b210db7a518584070da9718a2443cf41f7e"
+  },
+  "lightProfileBranches": [
+    "4917cea1b8ba3f4fccebfc65cff87e67bc520db0399eac84f00a16f599b68665",
+    "76be3b5bde378ddd1faf0155029c4c0796e1abbef234aa8f991f36999c4e883b",
+    "b50835dd623db59028abf0bbb375d72aa9eef327ff1f857502e0a4547c3921b9",
+    "b50835dd623db59028abf0bbb375d72aa9eef327ff1f857502e0a4547c3921b9",
+    "0413f75f4e8785d6ebf5d7e69c56caf3f249f68063e9a303878aeb0997215ba1",
+    "67fc710b4b80f45d23140cbca868c5366bb3496640d76644778279df5e2c1691",
+    "c1f66a33a75d1e6686d6288fe0501ba281b1fb740c70061b1f4d7e616cadc113",
+    "8cb653c60457917c8b22a8967c9e3cf26c95573f6875d7343c14acd1b0893c88",
+    "4ec1f5b236b00ddcb557b5c7b38813641f70bf1a95fc7f0793ac810a79adc10b",
+    "8b556c45dd2f90e5ff925736a951e242f53dfac08981137e02aac04b1e42c491",
+    "786663a0d4605814a1a3ded43df084772f0852b0f286922256b04251487813a1",
+    "786663a0d4605814a1a3ded43df084772f0852b0f286922256b04251487813a1",
+    "12031b47525a7172bbe0b7ec9050309ae7b3b1801754c1b0fea006cb67f0f16e"
+  ],
+  "profileLifecycle": [
+    "c2cb9eaf4d3c9098e572145857a96d7c7ab64d35ef5e730fda5e5e4ca52c4453",
+    "bba59b36486228c61be1f47ca998aba83f50263d33ff200f4c7ac4198062e7b6",
+    "7c9c59bc2a7d0e83228ef5b199011b4b66c6542ebef0782f49d7172464d17a47",
+    "0e93a2a6892c5f74c322b2e8540e4a16e4e8b16a5ffc8d58d59d9a0f1551a9c9",
+    "cf2583e60f31d7bd330710074353e707db0168070591d6c1b5c736331ee662df",
+    "26f536680cf3fc620ecff4d8755cd48302620658d5022ed4f5afad99b4db6a09",
+    "3278487bfaa37dade235fa643ee21edb040efe0ba7b46167b66dfaa156281ccd",
+    "ce43592c08c7968e8535a405be6b8d6840df1b5b048eded441f540e287881cfd",
+    "721f272528bdc2188e1b7688a9c13d297cca838f6f244440efd07e3777f5a741",
+    "5376614f39ea4ca478bb903f5fe247ad1cf33e0587decad211e6c8b644301662",
+    "f080da32f311757e81e20511ec99870edc3ee79331ae9330b281f97c7eb95abd",
+    "8cdd74addacee78730ca94da540dfaf8f681843fb5bf365e3c9de7c8b4ac44e5",
+    "74ef4dd4c3c06b71e7a6fafd7a51a421a5621fcd846b1ef6be56023a0873fe3b",
+    "17c85f08b32cb3dd4ec12c71de40ea0ad278eb60c9c336a4dbafa358d1905ea4",
+    "22b9a2ba95a3999ced014ab3444127b68111cfe1feb69fab7e2f24a6c7458d07",
+    "ed32568f89a05925ae4a24657c01e9456e0ce0ec605a15cc37954bb894cc7035",
+    "e8bb515d0d41720819890ccf5cf027b9965da5346da30c815e9574d9f27796e3",
+    "9d7d296b512840d33d3dcb6163f5774a47650f5e90820496a48ecc291fb9eb06",
+    "b3957c13cecaa6c79fa74d061dae04c32eb5ad2a532383b0d63f721247db9ceb",
+    "10760ec1b0ed665538b3e06cce346a50c2a396fbe3a73954800bb238dd2acf73",
+    "6395430211cc19d0f6898c269e8045055574c9456dc2b4408e55e68481b71345",
+    "91768453d3c750e0d3864545d2501112a85404d3dbd564651f613049eae07fe4",
+    "f914d655b3e5f5b1cc8a754705fea7ebde2316301bea3b4ec03b3277a8b024e3",
+    "eb283656087be2bd4e133999fa27e2cdc02a7c08b16644c1927720d7e91b43c9",
+    "4b76a8f44dc55f2a192c49561a8019c12a541fcf6acb63d4c6e4dea39a60f642",
+    "dc872e08542aed165f82e29aa71e68982c63bb5caa96e5e2f97fd754afc40f3e",
+    "fd1784795106fbc8a421df38a6119b989dfa40a89f177da43c031a540abe1b80",
+    "fc2897631d6bf795ebda49e3cc346ea894fd56de14089989f719c7ffc3c187fd",
+    "d795db3f2609b0b896096fcd107fdb50e1feb7e35dfa1644af8d4b303fb04bb8",
+    "3ab6af93d4b4d06757eb6271cbb7b2442c8b5dc8369f24708fc70b5b4123922e",
+    "e1da58a0eb7ee3562f3d3f4578cce0c03d884fa1b53953b18c68a63237960c94",
+    "bf85bfafc7bfc13cdc7800ef5bd4597f22fcd38d42c72b5f84550686cad5f148",
+    "b977f959b94c2dc4557c211232af54f600d6148f948d19aa68e71973c04cea30",
+    "60268aaa57250b242cb02ea0abdc4f0f2e651b4b2e6f43b95683382a41bebf6e"
+  ]
+}

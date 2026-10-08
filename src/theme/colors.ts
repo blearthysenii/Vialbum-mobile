@@ -9,7 +9,7 @@ export const colors = {
   subtle: '#9A9891',
   placeholder: '#99958B',
   line: '#DFDCD3',
-  accent: '#A65331',
+  accent: '#007AFF',
   link: '#2F95FF',
   danger: '#A33D2D',
   success: '#526B50',

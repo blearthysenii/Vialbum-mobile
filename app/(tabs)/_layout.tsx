@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -6,13 +7,17 @@ import {
   type ComponentProps,
   useCallback,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
+  useState,
 } from 'react';
 import {
   Animated,
   Pressable,
   StyleSheet,
-  useWindowDimensions,
+  type LayoutChangeEvent,
+  type LayoutRectangle,
   View,
 } from 'react-native';
 import {
@@ -28,6 +33,9 @@ import Reanimated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { momentsNavigationColors, useNavigationTheme } from '@/features/navigation/theme';
+import { navigationBottom, NAVIGATION_HEIGHT } from '@/features/navigation/geometry';
 
 import {
   TabBarScrollProvider,
@@ -47,7 +55,6 @@ type BottomTabBarProps = Parameters<
 type TabName =
   | 'index'
   | 'search'
-  | 'create'
   | 'map'
   | 'profile';
 
@@ -65,15 +72,9 @@ const tabs: Record<TabName, TabConfig> = {
   },
 
   search: {
-    accessibilityLabel: 'Search',
-    activeIcon: 'search',
-    inactiveIcon: 'search-outline',
-  },
-
-  create: {
-    accessibilityLabel: 'Create a new journey',
-    activeIcon: 'add-outline',
-    inactiveIcon: 'add-outline',
+    accessibilityLabel: 'Moments, windows into places',
+    activeIcon: 'play-circle',
+    inactiveIcon: 'play-circle-outline',
   },
 
   map: {
@@ -97,101 +98,46 @@ function isTabName(
 
 type TabButtonProps = {
   tab: TabConfig;
-  tabName: TabName;
   focused: boolean;
   onPress: () => void;
   onLongPress: () => void;
   onNavbarIconPressIn: () => void;
   onNavbarIconPressOut: () => void;
   testID?: string;
+  iconColor: string;
+  onLayout: (event: LayoutChangeEvent) => void;
 };
 
+// Equal inset on each side gives a wide capsule while preserving slot centers.
+const INDICATOR_INSET = 6;
+
 function TabButton({
-  tab,
-  tabName,
-  focused,
-  onPress,
-  onLongPress,
-  onNavbarIconPressIn,
-  onNavbarIconPressOut,
-  testID,
+  tab, focused, onPress, onLongPress, onNavbarIconPressIn,
+  onNavbarIconPressOut, testID, iconColor, onLayout,
 }: TabButtonProps) {
-  const reduceMotion = useReducedMotion();
-  const iconScale = useRef(
-    new Animated.Value(
-      focused ? 1 : 0.96,
-    ),
-  ).current;
-
-  useEffect(() => {
-    if (reduceMotion) {
-      iconScale.setValue(focused ? 1 : 0.96);
-      return;
-    }
-    if (focused) {
-      Animated.sequence([
-        Animated.timing(iconScale, { toValue: 1.08, duration: 90, useNativeDriver: true }),
-        Animated.spring(iconScale, { toValue: 1, damping: 20, stiffness: 300, mass: 0.62, useNativeDriver: true }),
-      ]).start();
-    } else {
-      Animated.spring(iconScale, { toValue: 0.96, damping: 18, stiffness: 260, mass: 0.7, useNativeDriver: true }).start();
-    }
-  }, [focused, iconScale, reduceMotion]);
-
-  const horizontalOffset =
-    tabName === 'index'
-      ? 7
-      : tabName === 'profile'
-        ? -7
-        : 0;
+  const styles = usePresentationStyles(presentationBaselineStyles);
 
   return (
     <Pressable
-      accessibilityLabel={
-        tab.accessibilityLabel
-      }
+      accessibilityLabel={tab.accessibilityLabel}
       accessibilityRole="tab"
-      accessibilityState={{
-        selected: focused,
-      }}
+      accessibilityState={{ selected: focused }}
       onLongPress={onLongPress}
       onPress={onPress}
-      onPressIn={
-        onNavbarIconPressIn
-      }
-      onPressOut={
-        onNavbarIconPressOut
-      }
+      onPressIn={onNavbarIconPressIn}
+      onPressOut={onNavbarIconPressOut}
+      onLayout={onLayout}
       style={styles.segment}
       testID={testID}
     >
-      <Animated.View
-        style={{
-          transform: [
-            {
-              translateX:
-                horizontalOffset,
-            },
-            {
-              scale: iconScale,
-            },
-          ],
-        }}
-      >
+      <View style={styles.iconFrame}>
         <Ionicons
-          color={
-            focused
-              ? 'rgba(15, 15, 13, 0.98)'
-              : 'rgba(23, 23, 19, 0.72)'
-          }
-          name={
-            focused
-              ? tab.activeIcon
-              : tab.inactiveIcon
-          }
+          color={resolvePresentationColor(iconColor, 'color', 'content')}
+          name={focused ? tab.activeIcon : tab.inactiveIcon}
           size={26}
+          style={styles.iconGlyph}
         />
-      </Animated.View>
+      </View>
     </Pressable>
   );
 }
@@ -201,17 +147,24 @@ function VialbumTabBar({
   descriptors,
   navigation,
 }: BottomTabBarProps) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
+  const baseTheme = useNavigationTheme();
+  const momentsOverlay = state.routes[state.index]?.name === 'search';
+  const theme = momentsOverlay ? { ...momentsNavigationColors, dark: true } : baseTheme;
   const insets =
     useSafeAreaInsets();
 
   const {
     collapsed,
     expand,
+    interactionLocked,
+    isInteractionLocked,
   } = useTabBarController();
 
-  const {
-    width: screenWidth,
-  } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
+  const [capsuleWidth, setCapsuleWidth] = useState(0);
+  const [slotLayouts, setSlotLayouts] = useState<Record<string, LayoutRectangle>>({});
 
   const navbarPressProgress =
     useRef(
@@ -454,287 +407,107 @@ function VialbumTabBar({
       releaseNavbarPress,
     ]);
 
-  const capsuleWidth =
-    screenWidth - 40;
-
-  useEffect(() => {
-    return () => {
-      if (
-        navbarReleaseTimer.current
-      ) {
-        clearTimeout(
-          navbarReleaseTimer.current,
-        );
-      }
-    };
+  useEffect(() => () => {
+    if (navbarReleaseTimer.current) clearTimeout(navbarReleaseTimer.current);
   }, []);
 
-  const tabCount =
-    state.routes.length;
+  const measureSlot = useCallback((key: string, layout: LayoutRectangle) => {
+    setSlotLayouts(previous => {
+      const existing = previous[key];
+      if (existing && existing.x === layout.x && existing.y === layout.y &&
+          existing.width === layout.width && existing.height === layout.height) return previous;
+      return { ...previous, [key]: layout };
+    });
+  }, []);
 
-  const segmentWidth =
-    capsuleWidth / tabCount;
+  // Yoga lays out four equal flex slots. Use their actual measured centers,
+  // including native pixel rounding, rather than estimating from screen width.
+  const slotCenters = useMemo(() => state.routes.map(route => {
+    const layout = slotLayouts[route.key];
+    return layout ? { x: layout.x + layout.width / 2, y: layout.y + layout.height / 2 } : null;
+  }), [slotLayouts, state.routes]);
+  // Share one size across every tab, including native fractional-pixel rounding.
+  // The 62-point navigator leaves 6 points above/below the 50-point capsule.
+  const measuredSlots = state.routes.map(route => slotLayouts[route.key]);
+  const indicatorWidth = measuredSlots.every(Boolean)
+    ? Math.max(0, Math.min(...measuredSlots.map(slot => slot.width)) - INDICATOR_INSET * 2) : 0;
+  const indicatorHeight = measuredSlots.every(Boolean)
+    ? Math.max(0, Math.min(...measuredSlots.map(slot => slot.height)) - INDICATOR_INSET * 2) : 0;
+  const activeCenter = slotCenters[state.index];
+  const measuredCenters = slotCenters.map(center => center?.x ?? 0);
+  const slotsReady = slotCenters.length > 0 && slotCenters.every(center => center !== null);
 
-  const edgeInset = 7;
+  const activePosition = useSharedValue(0);
+  const activeCenterY = useSharedValue(0);
+  const indicatorVisible = useSharedValue(0);
+  const dragStartPosition = useSharedValue(0);
+  const previousIndex = useRef(state.index);
+  const collapseProgress = useRef(new Animated.Value(collapsed ? 1 : 0)).current;
 
-  const activeWidth =
-    segmentWidth - edgeInset * 2 + 14;
+  const settleIndicator = useCallback((index: number) => {
+    const center = slotCenters[index];
+    if (!center) return;
+    activePosition.set(reduceMotion ? center.x : withSpring(center.x, {
+      damping: 23, stiffness: 250, mass: 0.72, overshootClamping: true,
+    }));
+    activeCenterY.set(center.y);
+  }, [activeCenterY, activePosition, reduceMotion, slotCenters]);
 
-  const getPositionForIndex =
-    useCallback(
-      (index: number) => {
-        const boundedIndex =
-          Math.max(
-            0,
-            Math.min(
-              tabCount - 1,
-              index,
-            ),
-          );
+  const snapToIndex = useCallback((index: number) => {
+    if (isInteractionLocked()) return;
+    const route = state.routes[index];
+    if (!route || !isTabName(route.name) || index === state.index) {
+      settleIndicator(state.index);
+      return;
+    }
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (event.defaultPrevented) {
+      settleIndicator(state.index);
+      return;
+    }
+    settleIndicator(index);
+    navigation.navigate(route.name, route.params);
+  }, [isInteractionLocked, navigation, settleIndicator, state.index, state.routes]);
 
-        const center =
-          boundedIndex *
-            segmentWidth +
-          segmentWidth / 2;
+  const activeAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: indicatorVisible.get(),
+    width: indicatorWidth,
+    height: indicatorHeight,
+    borderRadius: indicatorHeight / 2,
+    transform: [
+      { translateX: activePosition.get() - indicatorWidth / 2 },
+      { translateY: activeCenterY.get() - indicatorHeight / 2 },
+    ],
+  }));
 
-        return Math.max(
-          edgeInset,
-          Math.min(
-            capsuleWidth -
-              activeWidth -
-              edgeInset,
-            center -
-              activeWidth / 2,
-          ),
-        );
-      },
-      [
-        activeWidth,
-        capsuleWidth,
-        edgeInset,
-        segmentWidth,
-        tabCount,
-      ],
-    );
-
-  const activeOffset =
-    getPositionForIndex(
-      state.index,
-    );
-
-  const activePosition =
-    useSharedValue(
-      activeOffset,
-    );
-
-  const dragStartPosition =
-    useSharedValue(
-      activeOffset,
-    );
-
-  const isDragging =
-    useSharedValue(false);
-
-  const activeScaleX =
-    useRef(
-      new Animated.Value(1),
-    ).current;
-
-  const activeScaleY =
-    useRef(
-      new Animated.Value(1),
-    ).current;
-
-  const previousIndex =
-    useRef(state.index);
-
-  const collapseProgress =
-    useRef(
-      new Animated.Value(
-        collapsed ? 1 : 0,
-      ),
-    ).current;
-
-  const snapToIndex =
-    useCallback(
-      (index: number) => {
-        const boundedIndex =
-          Math.max(
-            0,
-            Math.min(
-              tabCount - 1,
-              index,
-            ),
-          );
-
-        const targetPosition =
-          getPositionForIndex(
-            boundedIndex,
-          );
-
-        activePosition.set(
-          withSpring(
-            targetPosition,
-            {
-              damping: 22,
-              stiffness: 280,
-              mass: 0.68,
-            },
-          ),
-        );
-
-        const route =
-          state.routes[
-            boundedIndex
-          ];
-
-        if (
-          !route ||
-          !isTabName(
-            route.name,
-          )
-        ) {
-          return;
-        }
-
-        if (
-          boundedIndex ===
-          state.index
-        ) {
-          return;
-        }
-
-        const event =
-          navigation.emit({
-            type: 'tabPress',
-            target:
-              route.key,
-            canPreventDefault:
-              true,
-          });
-
-        if (
-          !event.defaultPrevented
-        ) {
-          navigation.navigate(
-            route.name,
-            route.params,
-          );
-        }
-      },
-      [
-        activePosition,
-        getPositionForIndex,
-        navigation,
-        state.index,
-        state.routes,
-        tabCount,
-      ],
-    );
-
-  const activeAnimatedStyle =
-    useAnimatedStyle(
-      () => ({
-        transform: [
-          {
-            translateX:
-              activePosition.get(),
-          },
-        ],
-      }),
-    );
-
-  const activePanGesture =
-    Gesture.Pan()
-      .activateAfterLongPress(
-        80,
-      )
-      .activeOffsetX([
-        -2,
-        2,
-      ])
-      .failOffsetY([
-        -18,
-        18,
-      ])
-      .onBegin(() => {
-        dragStartPosition.set(
-          activePosition.get(),
-        );
-      })
-      .onStart(() => {
-        isDragging.set(true);
-
-        dragStartPosition.set(
-          activePosition.get(),
-        );
-
-        if (!collapsed) {
-          runOnJS(expand)();
-        }
-      })
-      .onUpdate(
-        (event) => {
-          const nextPosition =
-            dragStartPosition.get() +
-            event.translationX;
-
-          const minPosition =
-            edgeInset;
-
-          const maxPosition =
-            capsuleWidth -
-            activeWidth -
-            edgeInset;
-
-          activePosition.set(
-            Math.max(
-              minPosition,
-              Math.min(
-                maxPosition,
-                nextPosition,
-              ),
-            ),
-          );
-        },
-      )
-      .onEnd(
-        (event) => {
-          isDragging.set(false);
-
-          const projectedPosition =
-            activePosition.get() +
-            event.velocityX *
-              0.045;
-
-          const projectedCenter =
-            projectedPosition +
-            activeWidth / 2;
-
-          const nearestIndex =
-            Math.max(
-              0,
-              Math.min(
-                tabCount - 1,
-                Math.round(
-                  (
-                    projectedCenter -
-                    segmentWidth /
-                      2
-                  ) /
-                    segmentWidth,
-                ),
-              ),
-            );
-
-          runOnJS(
-            snapToIndex,
-          )(nearestIndex);
-        },
-      )
-      .onFinalize(() => {
-        isDragging.set(false);
-      });
+  const activePanGesture = Gesture.Pan()
+    .enabled(slotsReady && !interactionLocked)
+    .activateAfterLongPress(80)
+    .activeOffsetX([-2, 2])
+    .failOffsetY([-18, 18])
+    .onBegin(() => { dragStartPosition.set(activePosition.get()); })
+    .onStart(() => {
+      dragStartPosition.set(activePosition.get());
+      if (!collapsed) runOnJS(expand)();
+    })
+    .onUpdate(event => {
+      activePosition.set(Math.max(measuredCenters[0], Math.min(
+        measuredCenters[measuredCenters.length - 1],
+        dragStartPosition.get() + event.translationX,
+      )));
+    })
+    .onEnd(event => {
+      const projectedCenter = activePosition.get() + event.velocityX * 0.045;
+      let nearestIndex = 0;
+      for (let index = 1; index < measuredCenters.length; index++) {
+        if (Math.abs(measuredCenters[index] - projectedCenter) <
+            Math.abs(measuredCenters[nearestIndex] - projectedCenter)) nearestIndex = index;
+      }
+      runOnJS(snapToIndex)(nearestIndex);
+    })
+    .onFinalize((_, success) => {
+      if (!success) runOnJS(settleIndicator)(state.index);
+    });
 
   useEffect(() => {
     Animated.spring(
@@ -763,98 +536,20 @@ function VialbumTabBar({
     state.index,
   ]);
 
-  useEffect(() => {
-    const changed =
-      previousIndex.current !==
-      state.index;
-
-    previousIndex.current =
-      state.index;
-
-    if (!changed) {
-      activePosition.set(
-        activeOffset,
-      );
-
-      return;
-    }
-
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(
-          activeScaleX,
-          {
-            toValue: 1.03,
-            damping: 22,
-            stiffness: 330,
-            mass: 0.55,
-            useNativeDriver:
-              true,
-          },
-        ),
-
-        Animated.spring(
-          activeScaleY,
-          {
-            toValue: 0.975,
-            damping: 22,
-            stiffness: 330,
-            mass: 0.55,
-            useNativeDriver:
-              true,
-          },
-        ),
-      ]),
-
-      Animated.parallel([
-        Animated.spring(
-          activeScaleX,
-          {
-            toValue: 1,
-            damping: 18,
-            stiffness: 280,
-            mass: 0.65,
-            useNativeDriver:
-              true,
-          },
-        ),
-
-        Animated.spring(
-          activeScaleY,
-          {
-            toValue: 1,
-            damping: 18,
-            stiffness: 280,
-            mass: 0.65,
-            useNativeDriver:
-              true,
-          },
-        ),
-      ]),
-    ]).start();
-
-    activePosition.set(
-      withSpring(
-        activeOffset,
-        {
-          damping: 23,
-          stiffness: 250,
-          mass: 0.72,
-          energyThreshold:
-            0.01,
-        },
-      ),
-    );
-  }, [
-    activeOffset,
-    activePosition,
-    activeScaleX,
-    activeScaleY,
-    state.index,
-  ]);
+  useLayoutEffect(() => {
+    if (!activeCenter || !slotsReady) return;
+    const changed = previousIndex.current !== state.index;
+    previousIndex.current = state.index;
+    activePosition.set(changed && !reduceMotion ? withSpring(activeCenter.x, {
+      damping: 23, stiffness: 250, mass: 0.72, overshootClamping: true,
+    }) : activeCenter.x);
+    activeCenterY.set(activeCenter.y);
+    indicatorVisible.set(1);
+  }, [activeCenter, activeCenterY, activePosition, indicatorVisible, reduceMotion, slotsReady, state.index]);
 
   return (
     <Animated.View
+      pointerEvents={interactionLocked ? 'none' : 'auto'}
       onTouchStart={
         handleNavbarBackgroundPressIn
       }
@@ -866,13 +561,9 @@ function VialbumTabBar({
       }
       style={[
         styles.shell,
+        theme.dark && styles.darkShell,
         {
-          bottom:
-            Math.max(
-              insets.bottom -
-                12,
-              8,
-            ),
+          bottom: navigationBottom(insets.bottom),
         },
         {
           transform: [
@@ -967,10 +658,22 @@ function VialbumTabBar({
           },
         ]}
       >
+        {momentsOverlay ? (
+          <BlurView intensity={34} tint={presentationBlurTint("systemThinMaterialDark")}
+            style={[styles.backgroundBar, { backgroundColor: resolvePresentationColor(theme.surface, 'backgroundColor', 'content'), borderColor: resolvePresentationColor(theme.border, 'borderColor', 'content') }]}>
+            <View style={styles.momentsHighlight} />
+          </BlurView>
+        ) : theme.dark ? (
+          <View style={[styles.backgroundBar, styles.darkCapsule, {
+            backgroundColor: resolvePresentationColor(theme.surface, 'backgroundColor', 'content'),
+            borderColor: resolvePresentationColor(theme.border, 'borderColor', 'content'),
+            borderWidth: 1,
+          }]} />
+        ) : (
         <BlurView
           intensity={34}
-          tint="systemUltraThinMaterialLight"
-          style={styles.backgroundBar}
+          tint={presentationBlurTint("systemUltraThinMaterialLight")}
+          style={[styles.backgroundBar, { backgroundColor: resolvePresentationColor(theme.surface, 'backgroundColor', 'content') }]}
         >
           <View
             pointerEvents="none"
@@ -995,12 +698,14 @@ function VialbumTabBar({
 
 
         </BlurView>
+        )}
       </Animated.View>
 
       <Animated.View
         pointerEvents="none"
         style={[
           styles.navbarPressLightOverlay,
+          theme.dark && { opacity: 0 },
           {
             width:
               navbarPressProgress.interpolate(
@@ -1034,7 +739,7 @@ function VialbumTabBar({
                 },
               ),
             backgroundColor:
-              navbarPressBrightness.interpolate(
+              resolvePresentationColor(navbarPressBrightness.interpolate(
                 {
                   inputRange: [0, 1],
                   outputRange: [
@@ -1042,55 +747,24 @@ function VialbumTabBar({
                     'rgba(255,255,255,0.92)',
                   ],
                 },
-              ),
+              ), 'backgroundColor', 'content'),
           },
         ]}
       />
 
       <View
-        style={styles.contentBar}
+        onLayout={event => setCapsuleWidth(event.nativeEvent.layout.width)}
+        style={[styles.contentBar, theme.dark && styles.darkCapsule]}
       >
 
         <Reanimated.View
           pointerEvents="none"
-          style={[
-            styles.activeVisualArea,
-            {
-              width:
-                activeWidth +
-                20,
-            },
-            activeAnimatedStyle,
-          ]}
+          style={[styles.activeIndicator, { backgroundColor: resolvePresentationColor(theme.selectedSurface, 'backgroundColor', 'content') }, momentsOverlay && styles.momentsIndicator, activeAnimatedStyle]}
         >
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.activeSegment,
-              {
-                left: 10,
-                width:
-                  activeWidth,
-                transform: [
-                  {
-                    scaleX:
-                      activeScaleX,
-                  },
-                  {
-                    scaleY:
-                      activeScaleY,
-                  },
-                ],
-              },
-            ]}
-          >
-            <View
-              pointerEvents="none"
-              style={
-                styles.activeTint
-              }
-            />
-          </Animated.View>
+          {momentsOverlay ? <>
+            <BlurView intensity={34} tint={presentationBlurTint("systemUltraThinMaterialDark")} style={StyleSheet.absoluteFill} />
+            <View style={styles.momentsSelectedTint} />
+          </> : null}
         </Reanimated.View>
 
         {state.routes.map(
@@ -1122,6 +796,7 @@ function VialbumTabBar({
 
             const onPress =
               () => {
+                if (isInteractionLocked()) return;
                 if (!collapsed) {
                   expand();
                 }
@@ -1151,6 +826,7 @@ function VialbumTabBar({
 
             const onLongPress =
               () => {
+                if (isInteractionLocked()) return;
                 navigation.emit(
                   {
                     type: 'tabLongPress',
@@ -1180,10 +856,9 @@ function VialbumTabBar({
                 onNavbarIconPressOut={
                   handleNavbarIconPressOut
                 }
+                iconColor={focused ? theme.activeIcon : theme.inactiveIcon}
                 tab={tab}
-                tabName={
-                  route.name
-                }
+                onLayout={event => measureSlot(route.key, event.nativeEvent.layout)}
                 testID={
                   options.tabBarButtonTestID
                 }
@@ -1192,23 +867,12 @@ function VialbumTabBar({
           },
         )}
 
-        <GestureDetector
-          gesture={
-            activePanGesture
-          }
-        >
+        <GestureDetector gesture={activePanGesture}>
           <Reanimated.View
             accessibilityLabel="Drag to switch tabs"
             accessibilityRole="adjustable"
-            style={[
-              styles.activeGestureArea,
-              {
-                width:
-                  activeWidth +
-                  20,
-              },
-              activeAnimatedStyle,
-            ]}
+            pointerEvents={slotsReady ? 'auto' : 'none'}
+            style={[styles.indicatorGestureArea, activeAnimatedStyle]}
           />
         </GestureDetector>
       </View>
@@ -1217,9 +881,12 @@ function VialbumTabBar({
 }
 
 export default function TabsLayout() {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
+  const theme = useNavigationTheme();
   return (
     <GestureHandlerRootView
-      style={styles.root}
+      style={[styles.root, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'canvas') }]}
     >
       <TabBarScrollProvider>
         <Tabs
@@ -1229,6 +896,7 @@ export default function TabsLayout() {
             />
           )}
           screenOptions={{
+            sceneStyle: { backgroundColor: theme.canvas },
             headerShown:
               false,
             tabBarHideOnKeyboard:
@@ -1245,14 +913,7 @@ export default function TabsLayout() {
           <Tabs.Screen
             name="search"
             options={{
-              title: 'Search',
-            }}
-          />
-
-          <Tabs.Screen
-            name="create"
-            options={{
-              title: 'Create',
+              title: 'Moments',
             }}
           />
 
@@ -1279,6 +940,22 @@ const styles =
   StyleSheet.create({
     root: {
       flex: 1,
+    },
+
+    momentsHighlight: { ...StyleSheet.absoluteFill, borderTopWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(255,255,255,0.2)', borderRadius: 31 },
+    momentsIndicator: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth,
+      borderColor: 'rgba(255,255,255,0.12)' },
+    momentsSelectedTint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(255,255,255,0.14)' },
+    darkShell: {
+      borderRadius: 999,
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      elevation: 0,
+    },
+
+    darkCapsule: {
+      borderRadius: 999,
     },
 
     shell: {
@@ -1313,7 +990,7 @@ const styles =
     },
 
     animatedBackground: {
-      height: 62,
+      height: NAVIGATION_HEIGHT,
 
       position:
         'absolute',
@@ -1343,6 +1020,7 @@ const styles =
     },
 
     contentBar: {
+      zIndex: 2,
       alignItems:
         'center',
 
@@ -1354,7 +1032,7 @@ const styles =
       flexDirection:
         'row',
 
-      height: 62,
+      height: NAVIGATION_HEIGHT,
 
       overflow:
         'visible',
@@ -1419,92 +1097,34 @@ const styles =
         StyleSheet.hairlineWidth,
     },
 
-    activeSegment: {
-      borderCurve:
-        'continuous',
-
-      borderRadius: 28,
-
-      bottom: 9,
-
-      overflow:
-        'hidden',
-
-      position:
-        'absolute',
-
-      top: 9,
-    },
-
-    activeVisualArea: {
-      bottom: -5,
-
-      left: -10,
-
-      position:
-        'absolute',
-
-      top: -5,
-
+    activeIndicator: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      borderCurve: 'continuous',
       zIndex: 2,
     },
 
-    activeGestureArea: {
-      bottom: -5,
-
-      left: -10,
-
-      position:
-        'absolute',
-
-      top: -5,
-
+    indicatorGestureArea: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
       zIndex: 20,
     },
 
-    activeTint: {
-      position:
-        'absolute',
-
-      inset: 0,
-
-      backgroundColor:
-        'rgba(232, 232, 234, 0.94)',
+    iconFrame: {
+      width: 26,
+      height: 26,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
 
-    activeGlassBorder: {
-      position:
-        'absolute',
-
-      inset: 0,
-
-      borderColor:
-        'rgba(255, 255, 255, 0.34)',
-
-      borderCurve:
-        'continuous',
-
-      borderRadius: 28,
-
-      borderWidth:
-        StyleSheet.hairlineWidth,
-    },
-
-    activeTopReflection: {
-      backgroundColor:
-        'rgba(255, 255, 255, 0.36)',
-
-      height:
-        StyleSheet.hairlineWidth,
-
-      left: 14,
-
-      position:
-        'absolute',
-
-      right: 14,
-
-      top: 1,
+    iconGlyph: {
+      width: 26,
+      height: 26,
+      lineHeight: 26,
+      textAlign: 'center',
+      includeFontPadding: false,
     },
 
     segment: {
@@ -1519,8 +1139,10 @@ const styles =
       justifyContent:
         'center',
 
-      minHeight: 48,
+      flexBasis: 0,
+      minWidth: 0,
 
       zIndex: 4,
     },
   });
+const presentationBaselineStyles = styles;

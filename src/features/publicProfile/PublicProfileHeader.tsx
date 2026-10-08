@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
@@ -10,29 +11,31 @@ import { useProfileTheme } from '@/features/profile/theme';
 import { FollowButton } from '@/features/follows/FollowButton';
 import type { PublicProfile } from './api';
 
-export function PublicProfileHeader({ profile }: { profile: PublicProfile }) {
+export function PublicProfileHeader({ profile, sectionTitle = 'Journeys' }: { profile: PublicProfile; sectionTitle?: string | null }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const theme = useProfileTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   return <View>
     <View style={styles.hero}>
       <ProfileCover source={profile.cover_url} canvas={theme.canvas} dark={theme.dark} reduceMotion={reduceMotion} />
-      <Text style={[styles.motto, { top: insets.top + 68 }]}>Explore{'\n'}Capture{'\n'}Remember</Text>
+      <Text style={presentationTextStyle([styles.motto, { top: insets.top + 68 }])}>Explore{'\n'}Capture{'\n'}Remember</Text>
       <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.back, { top: insets.top + 12 }]}>
-        <BlurView intensity={34} tint="dark" style={StyleSheet.absoluteFill} />
-        <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+        <BlurView intensity={34} tint={presentationBlurTint("dark")} style={StyleSheet.absoluteFill} />
+        <Ionicons name="chevron-back" size={24} color={resolvePresentationColor("#FFFFFF", 'color', 'content')} />
       </Pressable>
     </View>
     <View style={styles.identity}>
-      <View style={[styles.avatarFrame, { borderColor: theme.canvas }]}><ProfileAvatarImage source={profile.avatar_url} label={profile.username} cacheKey={`public-profile:${profile.id}`} style={styles.avatar} fallbackIconSize={54} /></View>
-      <Text style={[styles.name, { color: theme.ink }]}>{profile.display_name}</Text>
-      <Text style={[styles.username, { color: theme.muted }]}>@{profile.username}</Text>
-      {profile.bio ? <Text style={[styles.bio, { color: theme.ink }]}>{profile.bio}</Text> : null}
-      {profile.location ? <Text style={[styles.location, { color: theme.muted }]}><Ionicons name="location-outline" size={14} /> {profile.location}</Text> : null}
+      <View style={[styles.avatarFrame, { borderColor: resolvePresentationColor(theme.canvas, 'borderColor', 'content') }]}><ProfileAvatarImage source={profile.avatar_url} label={profile.username} cacheKey={`public-profile:${profile.id}`} style={styles.avatar} fallbackIconSize={54} /></View>
+      <Text style={presentationTextStyle([styles.name, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{profile.display_name}</Text>
+      <Text style={presentationTextStyle([styles.username, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>@{profile.username}</Text>
+      {profile.bio ? <Text style={presentationTextStyle([styles.bio, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{profile.bio}</Text> : null}
+      {profile.location ? <Text style={presentationTextStyle([styles.location, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}><Ionicons name="location-outline" size={14} /> {profile.location}</Text> : null}
       <View style={styles.action}><FollowButton id={profile.id} initial={profile.is_following} /></View>
     </View>
-    <View style={[styles.divider, { backgroundColor: theme.border }]} />
-    <Text style={[styles.section, { color: theme.ink }]}>Journeys</Text>
+    <View style={[styles.divider, { backgroundColor: resolvePresentationColor(theme.border, 'backgroundColor', 'content') }]} />
+    {sectionTitle ? <Text style={presentationTextStyle([styles.section, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{sectionTitle}</Text> : <View style={{ height: 20 }} />}
   </View>;
 }
 const styles = StyleSheet.create({
@@ -43,3 +46,4 @@ const styles = StyleSheet.create({
   bio: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 10 }, location: { fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 5 }, action: { marginTop: 17 },
   divider: { height: StyleSheet.hairlineWidth, marginHorizontal: 20, marginTop: 24 }, section: { fontSize: 23, fontWeight: '700', letterSpacing: -0.6, marginHorizontal: 20, marginTop: 28, marginBottom: 14 },
 });
+const presentationBaselineStyles = styles;

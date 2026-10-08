@@ -10,7 +10,7 @@ export function resolveApiImageUrl(value: string | null | undefined, label: stri
     try { resolved = `${apiBaseUrl()}${raw}`; } catch { resolved = null; }
   }
 
-  if (__DEV__) console.debug(`[Image URL] ${label}`, { source: raw, resolved });
+  if (__DEV__) console.debug(`[Image URL] ${label}`, { hasSource: Boolean(raw), resolved: Boolean(resolved), relative: raw.startsWith('/') });
   return resolved;
 }
 

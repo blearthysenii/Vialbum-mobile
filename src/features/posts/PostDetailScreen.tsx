@@ -1,3 +1,4 @@
+import { resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -18,11 +19,11 @@ export function PostDetailScreen({ id, own = false, memoryId }: { id: string; ow
   const { journey, error, refresh, initialLoading } = usePostDetail(id, own, user);
   const owner = Boolean(user && journey?.creator.id === user.id);
   const openJourney = () => { if (owner) router.push(`/journey/edit/${id}`); };
-  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: theme.dark ? theme.glassStrong : colors.tab }}>
+  return <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: resolvePresentationColor(theme.dark ? theme.glassStrong : colors.tab, 'backgroundColor', 'content') }}>
     <StatusBar style={theme.dark ? 'light' : 'dark'} />
     <View style={{ minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-      <PostGlassButton theme={theme} label="Back" onPress={() => router.canGoBack() ? router.back() : router.replace('/')}  ><Ionicons name="chevron-back" size={25} color={theme.ink} /></PostGlassButton>
-      <Text accessibilityRole="header" style={{ color: theme.ink, fontSize: 17, fontWeight: '600' }}>Post</Text>
+      <PostGlassButton theme={theme} label="Back" onPress={() => router.canGoBack() ? router.back() : router.replace('/')}  ><Ionicons name="chevron-back" size={25} color={resolvePresentationColor(theme.ink, 'color', 'content')} /></PostGlassButton>
+      <Text accessibilityRole="header" style={presentationTextStyle({ color: resolvePresentationColor(theme.ink, 'color', 'content'), fontSize: 17, fontWeight: '600' })}>Post</Text>
       {journey ? <PostMenu journey={journey} owner={owner} theme={theme} /> : <View style={{ width: 44 }} />}
     </View>
     <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>

@@ -1,3 +1,4 @@
+import { usePresentationStyles, presentationTextStyle } from '@/theme/presentation';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -13,6 +14,8 @@ import { radii, typography } from '@/theme/tokens';
 type Props = { visible: boolean; onClose: () => void; onDelete: (password: string) => Promise<void> };
 
 export function DeleteAccountSheet({ visible, onClose, onDelete }: Props) {
+  const styles = usePresentationStyles(presentationBaselineStyles, 'surface');
+
   const [confirmation, setConfirmation] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -38,9 +41,9 @@ export function DeleteAccountSheet({ visible, onClose, onDelete }: Props) {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
         <SheetHeader title="Delete Account" onClose={close} />
         <View style={styles.warning}>
-          <Text style={styles.eyebrow}>PERMANENT ACTION</Text>
-          <Text style={styles.title}>Delete your Vialbum forever?</Text>
-          <Text style={styles.copy}>Your journeys, memories, photo records, and private uploaded media will be permanently removed. This cannot be undone. Export your data first if you want a copy.</Text>
+          <Text style={presentationTextStyle(styles.eyebrow)}>PERMANENT ACTION</Text>
+          <Text style={presentationTextStyle(styles.title)}>Delete your Vialbum forever?</Text>
+          <Text style={presentationTextStyle(styles.copy)}>Your journeys, memories, photo records, and private uploaded media will be permanently removed. This cannot be undone. Export your data first if you want a copy.</Text>
         </View>
         <TextField label="Type DELETE to confirm" value={confirmation} onChangeText={setConfirmation} autoCapitalize="characters" contained />
         <TextField label="Current password" value={password} onChangeText={setPassword} secureTextEntry contained />
@@ -57,3 +60,4 @@ const styles = StyleSheet.create({
   warning: { padding: spacing.lg, borderRadius: radii.lg, backgroundColor: '#F5E9E4', gap: spacing.sm },
   eyebrow: { ...typography.eyebrow, color: colors.danger }, title: { ...typography.sectionTitle, color: colors.ink }, copy: { ...typography.body, color: colors.muted },
 });
+const presentationBaselineStyles = styles;

@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
 import { useProfileTheme } from '@/features/profile/theme';
 import { Alert, StyleSheet, Text, View, type ViewStyle } from 'react-native';
@@ -36,6 +37,8 @@ export function PhotoUploader({
   buttonLabel?: string;
   renderControls?: (controls: { onPress: () => void; disabled: boolean }) => ReactNode;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const [items, setItems] = useState<UploadItem[]>([]);
   const theme = useProfileTheme();
   const opened = useRef(false);
@@ -83,10 +86,10 @@ export function PhotoUploader({
       <UploadButton style={buttonStyle} disabled={isBusy} loading={isPicking} onPress={() => void choose()}>{buttonLabel}</UploadButton>
     )}
     {items.length ? <View style={styles.queue}>{items.map((item) => (
-      <View key={item.key} style={[styles.row, { backgroundColor: theme.placeholder }]}>
+      <View key={item.key} style={[styles.row, { backgroundColor: resolvePresentationColor(theme.placeholder, 'backgroundColor', 'surface') }]}>
         <View style={styles.rowCopy}>
-          <Text numberOfLines={1} style={[styles.name, { color: theme.ink }]}>{item.name}</Text>
-          <Text style={[styles.status, { color: theme.muted }, item.status === 'error' && styles.error]}>
+          <Text numberOfLines={1} style={presentationTextStyle([styles.name, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{item.name}</Text>
+          <Text style={presentationTextStyle([styles.status, { color: resolvePresentationColor(theme.muted, 'color', 'content') }, item.status === 'error' && styles.error])}>
             {item.status === 'preparing' ? 'Preparing…' : item.status === 'uploading' ? `Uploading ${item.progress}%` : item.status === 'success' ? 'Added to album' : item.error}
           </Text>
           {item.status === 'uploading' ? <View style={styles.track}><View style={[styles.progress, { width: `${item.progress}%` }]} /></View> : null}
@@ -102,3 +105,4 @@ const styles = StyleSheet.create({
   rowCopy: { flex: 1 }, name: { ...typography.metadata, color: colors.ink, fontSize: 13 }, status: { ...typography.metadata, color: colors.muted, marginTop: 3 }, error: { color: colors.danger },
   track: { height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: '#D5CFC2', marginTop: 7 }, progress: { height: 3, backgroundColor: colors.accent },
 });
+const presentationBaselineStyles = styles;

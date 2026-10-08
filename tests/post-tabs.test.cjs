@@ -37,14 +37,15 @@ test('city viewport fits one, several and dateline-adjacent cities', () => {
   assert.ok(multiple.latitude - multiple.latitudeDelta / 2 < 24.47);
   assert.ok(cityRegion([{ latitude: 10, longitude: 179 }, { latitude: 11, longitude: -179 }]).longitudeDelta < 5);
 });
-test('Photos starts selected, stays mounted across tabs, and Hotels has no fake action', () => {
+test('Photos starts selected, stays mounted across tabs, and Stays replaces the Hotels placeholder', () => {
   const content = fs.readFileSync('src/features/posts/PostContent.tsx', 'utf8');
   assert.match(content, /useState<PostTab>\('photos'\)/);
   assert.match(content, /display: tab === 'photos' \? 'flex' : 'none'/);
   assert.match(content, /next > 0 && next !== width/);
   assert.match(content, /mapVisited \?/);
   const tabs = fs.readFileSync('src/features/posts/PostTabs.tsx', 'utf8');
-  assert.match(tabs, /No hotel added/); assert.doesNotMatch(tabs, /Add hotel|Notes/);
+  assert.match(tabs, /label: 'Stays'/); assert.doesNotMatch(tabs, /No hotel added|label: 'Hotels'/);
+  assert.match(content, /<StaysTab journey=\{journey\}/);
   const map = fs.readFileSync('src/features/posts/PostMapTab.tsx', 'utf8');
   assert.match(map, /No location added/); assert.match(map, /showsUserLocation=\{false\}/);
 });

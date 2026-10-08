@@ -86,6 +86,7 @@ function quickHarness({ token = 'secret', error, returnedId = 'a' } = {}) {
     savedAccountStorage: { token: async () => token, forgetSession: async (id) => calls.push(['forget', id]) },
     authApi: { me: async () => { if (error) throw new ApiError(error); return { id: returnedId }; } },
     tokenStorage: { set: async (value) => calls.push(['active', value]) },
+    sessionVersion: { current: 0 }, clearPrivateLocalData: () => {},
     setUser: (user) => calls.push(['user', user.id]), ApiError,
   };
   vm.runInNewContext(ts.transpileModule(`globalThis.run = ${callback}`, {

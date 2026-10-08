@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
@@ -29,13 +30,14 @@ type Props = {
   onSaved: (photo: JourneyMedia) => void;
 };
 
-export function PhotoDetailsEditor({ journeyId, photo, memories, onClose, onSaved }: Props) {
+export function PhotoDetailsEditor({ journeyId, photo, onClose, onSaved }: Props) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const [caption, setCaption] = useState(photo.caption ?? '');
   const [capturedAt, setCapturedAt] = useState(photo.captured_at);
   const [latitude, setLatitude] = useState(photo.latitude);
   const [longitude, setLongitude] = useState(photo.longitude);
   const [place, setPlace] = useState<PlaceSelection | null | undefined>(photo.place ?? undefined);
-  const [memoryId, setMemoryId] = useState(photo.memory_id);
   const [showDate, setShowDate] = useState(false);
   const [showLocation, setShowLocation] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -44,12 +46,11 @@ export function PhotoDetailsEditor({ journeyId, photo, memories, onClose, onSave
   async function save() {
     if (busy) return;
     const body: MediaUpdate = {
-      caption: caption.trim() || null,
+      ...(caption !== (photo.caption ?? '') ? { caption: caption.trim() || null } : {}),
       captured_at: capturedAt,
       latitude,
       longitude,
       place,
-      memory_id: memoryId,
     };
     setBusy(true); setError(null);
     try {
@@ -61,7 +62,6 @@ export function PhotoDetailsEditor({ journeyId, photo, memories, onClose, onSave
     } finally { setBusy(false); }
   }
 
-  const selectedMemory = memories.find((memory) => memory.id === memoryId);
   return <Modal
     animationType="slide"
     presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
@@ -70,40 +70,33 @@ export function PhotoDetailsEditor({ journeyId, photo, memories, onClose, onSave
     onRequestClose={() => { if (!busy) onClose(); }}
   >
     <SafeAreaView style={styles.safe}>
-      <BlurView pointerEvents="none" intensity={72} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
+      <BlurView pointerEvents="none" intensity={72} tint={presentationBlurTint("systemMaterialLight")} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.glassWash} />
       <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
         <SheetHeader title="Photo Details" onClose={onClose} />
         <View style={styles.intro}>
-          <Text style={styles.heading}>Edit photograph.</Text>
-          <Text style={styles.introCopy}>Add the details that help this photograph tell its story.</Text>
+          <Text style={presentationTextStyle(styles.heading)}>Edit photograph.</Text>
+          <Text style={presentationTextStyle(styles.introCopy)}>Add the details that help this photograph tell its story.</Text>
         </View>
         <View style={styles.captionCard}>
-          <TextField label="Caption — optional" accessibilityLabel="Photo caption" editable={!busy} multiline placeholder="Write something about this photograph…" value={caption} onChangeText={setCaption} style={styles.captionInput} />
+          <TextField label="Caption — optional" accessibilityLabel="Photo caption" editable={!busy} multiline placeholder="Write something about this photograph…" value={caption} onChangeText={text => setCaption(Array.from(text).slice(0, 100).join(''))} style={styles.captionInput} />
+          <Text style={presentationTextStyle(styles.hint)}>{Array.from(caption).length}/100</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Edit capture date and time" onPress={() => setShowDate((value) => !value)} style={styles.optionCard}>
-          <Ionicons name="calendar-outline" size={21} color={colors.muted} />
-          <View style={styles.optionCopy}><Text style={styles.label}>CAPTURE DATE & TIME</Text><Text style={styles.value}>{formatDateTime(capturedAt) ?? 'Add capture date and time'}</Text></View>
-          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          <Ionicons name="calendar-outline" size={21} color={resolvePresentationColor(colors.muted, 'color', 'content')} />
+          <View style={styles.optionCopy}><Text style={presentationTextStyle(styles.label)}>CAPTURE DATE & TIME</Text><Text style={presentationTextStyle(styles.value)}>{formatDateTime(capturedAt) ?? 'Add capture date and time'}</Text></View>
+          <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor(colors.subtle, 'color', 'content')} />
         </Pressable>
         {showDate ? <DateTimePicker value={capturedAt ? new Date(capturedAt) : new Date()} mode={Platform.OS === 'ios' ? 'datetime' : 'date'} display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={(event, value) => {
           if (Platform.OS !== 'ios') setShowDate(false);
           if (event.type !== 'dismissed' && value) setCapturedAt(value.toISOString());
-        }} /> : null}
+        }} themeVariant={presentationInterfaceStyle()} /> : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Edit photo location" onPress={() => setShowLocation(true)} style={styles.optionCard}>
-          <Ionicons name="location-outline" size={21} color={colors.muted} />
-          <View style={styles.optionCopy}><Text style={styles.label}>LOCATION / PLACE — OPTIONAL</Text><Text style={styles.value}>{place ? formatPlaceContext(place) || place.display_name : formatCoordinates(latitude, longitude) ?? 'Search or choose on map'}</Text></View>
-          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          <Ionicons name="location-outline" size={21} color={resolvePresentationColor(colors.muted, 'color', 'content')} />
+          <View style={styles.optionCopy}><Text style={presentationTextStyle(styles.label)}>LOCATION / PLACE — OPTIONAL</Text><Text style={presentationTextStyle(styles.value)}>{place ? formatPlaceContext(place) || place.display_name : formatCoordinates(latitude, longitude) ?? 'Search or choose on map'}</Text></View>
+          <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor(colors.subtle, 'color', 'content')} />
         </Pressable>
-        <View style={styles.memoryCard}>
-          <Text style={styles.memoryLabel}>ASSOCIATED MEMORY — OPTIONAL</Text>
-          <Pressable accessibilityRole="button" onPress={() => setMemoryId(null)} style={[styles.memory, memoryId === null && styles.memorySelected]}><Text style={styles.memoryText}>No memory</Text>{memoryId === null ? <Ionicons name="checkmark-circle" size={20} color={colors.accent} /> : null}</Pressable>
-          {memories.map((memory) => <Pressable accessibilityRole="button" accessibilityState={{ selected: memoryId === memory.id }} key={memory.id} onPress={() => setMemoryId(memory.id)} style={[styles.memory, memoryId === memory.id && styles.memorySelected]}>
-            <View style={styles.memoryCopy}><Text style={styles.memoryText}>{memory.title}</Text><Text style={styles.memoryDate}>{memory.memory_date}</Text></View>{memoryId === memory.id ? <Ionicons name="checkmark-circle" size={20} color={colors.accent} /> : null}
-          </Pressable>)}
-        </View>
-        {selectedMemory ? <Text style={styles.hint}>Linked to “{selectedMemory.title}”.</Text> : null}
         {error ? <ErrorBanner message={error} /> : null}
         <PrimaryButton loading={busy} onPress={() => void save()} style={styles.saveButton}>Save Photo Details</PrimaryButton>
       </ScrollView>
@@ -132,10 +125,7 @@ const styles = StyleSheet.create({
   label: { ...typography.eyebrow, color: '#5E5E63', fontSize: 9, lineHeight: 12, letterSpacing: 1.5 },
   optionCard: { minHeight: 72, borderRadius: 24, backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', gap: 12 },
   optionCopy: { flex: 1, minWidth: 0 }, value: { ...typography.body, color: '#111111', fontSize: 16, lineHeight: 21, marginTop: 5 },
-  memoryCard: { borderRadius: 24, backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, overflow: 'hidden' },
-  memoryLabel: { ...typography.eyebrow, color: '#5E5E63', fontSize: 9, lineHeight: 12, letterSpacing: 1.5, marginBottom: 6 },
-  memory: { minHeight: 52, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D9D9DE', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  memorySelected: { backgroundColor: 'rgba(180,82,48,0.06)' }, memoryCopy: { flex: 1, minWidth: 0 }, memoryText: { ...typography.button, color: colors.ink }, memoryDate: { ...typography.metadata, color: colors.muted, marginTop: 2 },
   hint: { ...typography.metadata, color: colors.muted, paddingHorizontal: 4 },
   saveButton: { marginTop: 2, borderRadius: radii.round },
 });
+const presentationBaselineStyles = styles;

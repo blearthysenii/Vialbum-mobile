@@ -1,31 +1,25 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { followsApi, type FollowStats } from './api';
+import { ownFollowStatsFor } from './statsCache';
 
 export function useOwnFollowStats() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<FollowStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const request = useRef<AbortController | null>(null);
-  const refresh = useCallback(async () => {
-    request.current?.abort();
-    if (!user?.id) return;
-    const controller = new AbortController();
-    request.current = controller;
-    setLoading(true); setError(null);
-    try {
-      const result = await followsApi.stats(controller.signal);
-      if (!controller.signal.aborted) setStats(result);
-    } catch {
-      if (!controller.signal.aborted) { setStats(null); setError('Could not load your follow counts. Tap to retry.'); }
-    } finally { if (!controller.signal.aborted) setLoading(false); }
-  }, [user?.id]);
+  const store = useMemo(() => ownFollowStatsFor(user?.id ?? 'signed-out'), [user?.id]);
+  const state = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const refresh = useCallback(async () => { if (user?.id) return store.refreshOutcome(true); }, [store, user?.id]);
   useFocusEffect(useCallback(() => {
-    setStats(null);
-    void refresh();
-    return () => { request.current?.abort(); setStats(null); };
-  }, [refresh]));
-  return { stats, error, loading, refresh };
+    if (user?.id && store.getSnapshot().data === null) void store.refresh();
+    // Navigation blur is not a data invalidation event.
+  }, [store, user?.id]));
+  useEffect(() => {
+    let previous = AppState.currentState;
+    const listener = AppState.addEventListener('change', next => {
+      if (next === 'active' && previous !== 'active' && user?.id && store.getSnapshot().data !== null) void store.refresh();
+      previous = next;
+    });
+    return () => listener.remove();
+  }, [store, user?.id]);
+  return { stats: state.data, error: state.error, loading: state.loading && state.data === null, refresh };
 }

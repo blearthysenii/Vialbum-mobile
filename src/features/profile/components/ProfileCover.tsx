@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { usePresentationStyles, resolvePresentationColor } from '@/theme/presentation';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Image } from 'expo-image';
+import { StableCachedImage } from '@/features/media/components/StableCachedImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
-import { cachedImageSource, resolveApiImageUrl } from '@/features/media/imageUrl';
+import { useProfileTheme } from '@/features/profile/theme';
+import { resolveApiImageUrl } from '@/features/media/imageUrl';
 
-export function ProfileCover({ source, canvas, dark, reduceMotion }: { source: string | null; canvas: string; dark: boolean; reduceMotion: boolean }) {
+export const ProfileCover = memo(function ProfileCover({ source, canvas, dark, reduceMotion, onSourceError }: { onSourceError?: () => void; source: string | null; canvas: string; dark: boolean; reduceMotion: boolean }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
+  const theme = useProfileTheme();
   const uri = useMemo(() => resolveApiImageUrl(source, 'profile.cover'), [source]);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showImage = Boolean(uri && failedUrl !== uri);
@@ -16,49 +20,50 @@ export function ProfileCover({ source, canvas, dark, reduceMotion }: { source: s
     transform: [{ scale: reduceMotion ? 1 : 1.015 - imageProgress.value * 0.015 }],
   }));
 
-  useEffect(() => {
-    setFailedUrl(null);
-  }, [uri]);
+  useEffect(() => { setFailedUrl(null); }, [uri]);
+  useEffect(() => { if (!uri) imageProgress.set(0); }, [uri, imageProgress]);
+  const loaded = useCallback(() => {
+    if (imageProgress.value < 1) imageProgress.set(withTiming(1, { duration: reduceMotion ? 120 : 350, easing: Easing.out(Easing.cubic) }));
+  }, [imageProgress, reduceMotion]);
 
   return (
     <View style={styles.cover}>
-      <LinearGradient colors={dark ? ['#28333E', '#12171D'] : ['#AFC0CD', '#D9C8B5']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={resolvePresentationColor(theme.heroColors, 'colors', 'content')} style={StyleSheet.absoluteFill} />
       {showImage ? (
         <Animated.View style={[styles.coverImage, imageStyle]}>
-          <Image
-            source={cachedImageSource(uri!, `profile-cover:${uri?.split('?')[0]}`)}
+          <StableCachedImage
+            uri={uri}
+            namespace={`profile-cover:${uri?.split('?')[0]}`}
             contentFit="cover"
-            cachePolicy="disk"
             style={StyleSheet.absoluteFill}
-            onLoad={() => { imageProgress.set(withTiming(1, { duration: reduceMotion ? 120 : 350, easing: Easing.out(Easing.cubic) })); }}
-            onError={(response) => {
+            onLoad={loaded}
+            onSourceError={onSourceError}
+            onError={() => {
               setFailedUrl(uri);
-              if (__DEV__) console.warn('[Profile cover] onError', { url: uri, response });
+              if (__DEV__) console.warn('[Profile cover] onError', { hasSource: Boolean(uri), failed: true });
             }}
           />
         </Animated.View>
       ) : null}
 
-      {/* Broad, shallow crest measured from the profile reference. */}
-      <Svg
+      <LinearGradient
         pointerEvents="none"
-        width="100%"
-        height={150}
-        viewBox="0 0 1000 150"
-        preserveAspectRatio="none"
-        style={styles.coverCurve}
-      >
-        <Path
-          d="M0 146 C180 120 330 96 500 96 C670 96 820 120 1000 146 L1000 150 L0 150 Z"
-          fill={canvas}
-        />
-      </Svg>
+        colors={resolvePresentationColor(['rgba(0,0,0,0.48)', 'rgba(0,0,0,0.16)', 'rgba(0,0,0,0)'], 'colors', 'content')}
+        locations={[0, 0.35, 0.7]}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={resolvePresentationColor([`${canvas}00`, `${canvas}00`, `${canvas}38`, `${canvas}99`, `${canvas}EB`, canvas], 'colors', 'content')}
+        locations={[0, 0.48, 0.62, 0.77, 0.91, 1]}
+        style={StyleSheet.absoluteFill}
+      />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   cover: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   coverImage: { ...StyleSheet.absoluteFill },
-  coverCurve: { position: 'absolute', left: 0, right: 0, bottom: 0 },
 });
+const presentationBaselineStyles = styles;

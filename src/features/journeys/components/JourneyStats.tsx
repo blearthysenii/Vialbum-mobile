@@ -1,3 +1,4 @@
+import { usePresentationStyles, presentationBlurTint, presentationTextStyle } from '@/theme/presentation';
 import { BlurView } from 'expo-blur';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
@@ -19,6 +20,8 @@ export function JourneyStats({
   animate?: boolean;
   reduceMotion?: boolean;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const stats = journeyTimelineStats(summary);
   const entrances = useRef(Array.from({ length: 4 }, () => new Animated.Value(animate ? 0 : 1))).current;
 
@@ -56,11 +59,11 @@ export function JourneyStats({
       ]}
     >
       {glass ? <>
-        <BlurView pointerEvents="none" intensity={34} tint="systemUltraThinMaterialLight" style={StyleSheet.absoluteFill} />
+        <BlurView pointerEvents="none" intensity={34} tint={presentationBlurTint("systemUltraThinMaterialLight")} style={StyleSheet.absoluteFill} />
         <View pointerEvents="none" style={styles.glassTint} />
       </> : null}
-      <Text style={styles.value}>{stat.value}</Text>
-      <Text style={styles.label}>{stat.label}</Text>
+      <Text style={presentationTextStyle(styles.value)}>{stat.value}</Text>
+      <Text style={presentationTextStyle(styles.label)}>{stat.label}</Text>
     </Animated.View>)}
   </View>;
 }
@@ -75,3 +78,4 @@ const styles = StyleSheet.create({
   value: { ...typography.sectionTitle, color: colors.ink },
   label: { ...typography.metadata, color: colors.muted, marginTop: 2 },
 });
+const presentationBaselineStyles = styles;

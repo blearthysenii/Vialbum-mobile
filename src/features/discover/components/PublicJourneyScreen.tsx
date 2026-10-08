@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
@@ -19,6 +20,8 @@ import { SaveJourneyButton } from '@/features/savedJourneys/SaveJourneyButton';
 import { postTarget } from '@/features/posts/data';
 
 export function PublicJourneyScreen({ id }: { id: string }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const theme = useProfileTheme();
   const [journey, setJourney] = useState<PublicJourneyDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +47,10 @@ export function PublicJourneyScreen({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, retry]));
   const timeline = useMemo(() => journey ? publicTimeline(journey) : [], [journey]);
-  return <SafeAreaView style={[styles.screen, { backgroundColor: theme.canvas }]} edges={['top', 'bottom']}>
+  return <SafeAreaView style={[styles.screen, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'canvas') }]} edges={['top', 'bottom']}>
     <View style={styles.nav}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.back, { backgroundColor: theme.glassStrong }]}><Ionicons name="chevron-back" size={24} color={theme.ink} /></Pressable>
-      <Text style={[styles.navTitle, { color: theme.ink }]}>Journey</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.back, { backgroundColor: resolvePresentationColor(theme.glassStrong, 'backgroundColor', 'control') }]}><Ionicons name="chevron-back" size={24} color={resolvePresentationColor(theme.ink, 'color', 'content')} /></Pressable>
+      <Text style={presentationTextStyle([styles.navTitle, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>Journey</Text>
       {journey ? <SaveJourneyButton journey={journey} /> : <View style={styles.back} />}
     </View>
     <FlatList data={timeline} keyExtractor={(item) => item.id} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
@@ -56,27 +59,27 @@ export function PublicJourneyScreen({ id }: { id: string }) {
         {!journey && !error ? <DiscoverSkeletons theme={theme} /> : null}
         {journey ? <>
           {journey.cover_media_url ? <Image source={cachedImageSource(journey.cover_media_url, `public-cover:${id}`)} style={styles.cover} contentFit="cover" cachePolicy="memory-disk" /> : null}
-          <Text style={[styles.country, { color: theme.muted }]}>{journey.destination} · {journey.country}</Text>
-          <Text accessibilityRole="header" style={[styles.title, { color: theme.ink }]}>{journey.title}</Text>
-          <Text style={[styles.dates, { color: theme.muted }]}>{formatDateRange(journey.start_date, journey.end_date)}</Text>
+          <Text style={presentationTextStyle([styles.country, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{journey.destination} · {journey.country}</Text>
+          <Text accessibilityRole="header" style={presentationTextStyle([styles.title, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{journey.title}</Text>
+          <Text style={presentationTextStyle([styles.dates, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{formatDateRange(journey.start_date, journey.end_date)}</Text>
           <CreatorRow creator={journey.creator} theme={theme} />
-          {journey.description ? <Text style={[styles.description, { color: theme.ink }]}>{journey.description}</Text> : null}
-          <Text style={[styles.counts, { color: theme.muted }]}>{journey.photo_count} photos · {journey.memory_count} memories</Text>
+          {journey.description ? <Text style={presentationTextStyle([styles.description, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{journey.description}</Text> : null}
+          <Text style={presentationTextStyle([styles.counts, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{journey.photo_count} photos · {journey.memory_count} memories</Text>
           <PublicJourneyMap journey={journey} />
-          <Text style={[styles.sectionTitle, { color: theme.ink }]}>The journey</Text>
-          {!timeline.length ? <Text style={[styles.description, { color: theme.muted }]}>The story is just beginning.</Text> : null}
+          <Text style={presentationTextStyle([styles.sectionTitle, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>The journey</Text>
+          {!timeline.length ? <Text style={presentationTextStyle([styles.description, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>The story is just beginning.</Text> : null}
         </> : null}
       </View>}
       renderItem={({ item }) => <View style={styles.moment}>
-        <Text style={[styles.momentDate, { color: theme.muted }]}>{formatCalendarDate(item.date)}</Text>
-        {item.memory ? <><Text accessibilityRole="button" onPress={() => router.push(postTarget(id, false, item.memory!.id))} style={[styles.memoryTitle, { color: theme.ink }]}>{item.memory.title}</Text>{item.memory.place ? <Text style={[styles.dates, { color: theme.muted }]}>{item.memory.place.display_name}</Text> : null}{item.memory.caption ? <Text style={[styles.description, { color: theme.ink }]}>{item.memory.caption}</Text> : null}</> : null}
+        <Text style={presentationTextStyle([styles.momentDate, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{formatCalendarDate(item.date)}</Text>
+        {item.memory ? <><Text accessibilityRole="button" onPress={() => router.push(postTarget(id, false, item.memory!.id))} style={presentationTextStyle([styles.memoryTitle, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{item.memory.title}</Text>{item.memory.place ? <Text style={presentationTextStyle([styles.dates, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{item.memory.place.display_name}</Text> : null}{item.memory.caption ? <Text style={presentationTextStyle([styles.description, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{item.memory.caption}</Text> : null}</> : null}
         {item.photos.map((image) => <Pressable key={image.id} accessibilityRole="button" accessibilityLabel={image.caption ? `Open photo: ${image.caption}` : 'Open journey photo'} onPress={() => setPhoto(image)} style={styles.photo}>
           <Image source={cachedImageSource(image.thumbnail_url ?? image.url, `public-photo:${image.id}`)} style={{ width: '100%', aspectRatio: image.width && image.height ? Math.max(0.7, Math.min(1.5, image.width / image.height)) : 1 }} contentFit="cover" cachePolicy="memory-disk" />
-          {image.caption ? <Text style={[styles.photoCaption, { color: theme.muted }]}>{image.caption}</Text> : null}
+          {image.caption ? <Text style={presentationTextStyle([styles.photoCaption, { color: resolvePresentationColor(theme.muted, 'color', 'media') }])}>{image.caption}</Text> : null}
         </Pressable>)}
       </View>}
     />
-    <PublicPhotoViewer photo={photo} onClose={() => setPhoto(null)} />
+    <PublicPhotoViewer photos={timeline.flatMap(item => item.photos)} photo={photo} onClose={() => setPhoto(null)} />
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
@@ -89,3 +92,4 @@ const styles = StyleSheet.create({
   moment: { marginBottom: 28 }, momentDate: { fontSize: 12, fontWeight: '500', marginBottom: 7 }, memoryTitle: { fontSize: 21, lineHeight: 27, fontWeight: '600' },
   photo: { marginTop: 14, borderRadius: 20, overflow: 'hidden' }, photoCaption: { fontSize: 14, lineHeight: 21, paddingTop: 9 },
 });
+const presentationBaselineStyles = styles;

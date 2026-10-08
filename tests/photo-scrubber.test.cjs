@@ -32,9 +32,9 @@ function mount(count = 18, index = 0, reduced = false) {
   const code = ts.transpileModule(fs.readFileSync('src/features/posts/PhotoScrubber.tsx', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
-  vm.runInNewContext(code, { module, exports: module.exports, require: name => {
+  vm.runInNewContext(code, { module, exports: module.exports, require: require('./appearance-test-adapter.cjs').wrap(name => {
     assert.ok(mocks[name], `Unexpected dependency: ${name}`); return mocks[name];
-  } });
+  }) });
   const tree = module.exports.PhotoScrubber({ count, index, theme: {}, onSelect: next => changes.push(next) });
   return { tree, handlers, tapHandlers, options, values, changes, paginationWindow: module.exports.paginationWindow };
 }

@@ -1,3 +1,5 @@
+import { darkMapStyle } from '@/theme/map';
+import { usePresentationStyles, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, MapPressEvent } from 'react-native-maps';
@@ -23,6 +25,7 @@ export type LocationSelection = {
 };
 
 type Props = {
+  areaOnly?: boolean;
   entityLabel: string;
   latitude: string | null;
   longitude: string | null;
@@ -40,7 +43,9 @@ const mapStyle = [
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#F7F4ED' }] },
 ];
 
-export function LocationPicker({ entityLabel, latitude, longitude, place, onCancel, onChange }: Props) {
+export function LocationPicker({ entityLabel, latitude, longitude, place, onCancel, onChange, areaOnly = false }: Props) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const existing = latitude !== null && longitude !== null
     ? { latitude: Number(latitude), longitude: Number(longitude) }
     : null;
@@ -72,7 +77,7 @@ export function LocationPicker({ entityLabel, latitude, longitude, place, onCanc
     const timer = setTimeout(() => {
       setIsSearching(true);
       setSearchError(null);
-      void placeApi.search(normalized)
+      void (areaOnly ? placeApi.areas(normalized) : placeApi.search(normalized))
         .then((items) => {
           if (request !== requestRef.current) return;
           setResults(items);
@@ -89,9 +94,10 @@ export function LocationPicker({ entityLabel, latitude, longitude, place, onCanc
         });
     }, 350);
     return () => clearTimeout(timer);
-  }, [query, retryKey]);
+  }, [query, retryKey, areaOnly]);
 
   function selectMapPoint(event: MapPressEvent) {
+    if (areaOnly) return;
     setSelected(event.nativeEvent.coordinate);
     Keyboard.dismiss();
   }
@@ -108,35 +114,35 @@ export function LocationPicker({ entityLabel, latitude, longitude, place, onCanc
 
   return <Modal animationType="slide" onRequestClose={onCancel}>
     <View style={styles.screen}>
-      <MapView ref={mapRef} customMapStyle={mapStyle} initialRegion={initialRegion} onPress={selectMapPoint} rotateEnabled={false} style={StyleSheet.absoluteFill}>
-        {selected ? <Marker coordinate={selected}><View style={styles.marker}><Text style={styles.markerText}>V</Text></View></Marker> : null}
+      <MapView ref={mapRef} customMapStyle={presentationInterfaceStyle() === 'dark' ? darkMapStyle : mapStyle} initialRegion={initialRegion} onPress={selectMapPoint} rotateEnabled={false} style={StyleSheet.absoluteFill} userInterfaceStyle={presentationInterfaceStyle()}>
+        {selected ? <Marker coordinate={selected}><View style={styles.marker}><Text style={presentationTextStyle(styles.markerText)}>V</Text></View></Marker> : null}
       </MapView>
       <SafeAreaView style={styles.chrome} pointerEvents="box-none">
         <View style={styles.top} pointerEvents="box-none">
           <View style={styles.header}>
             <BackButton onPress={onCancel} />
-            <View style={styles.copy}><Text style={styles.eyebrow}>{entityLabel.toUpperCase()} PLACE</Text><Text style={styles.title}>Find a place, then fine-tune it.</Text></View>
+            <View style={styles.copy}><Text style={presentationTextStyle(styles.eyebrow)}>{entityLabel.toUpperCase()} PLACE</Text><Text style={presentationTextStyle(styles.title)}>{areaOnly ? 'Choose a city or town.' : 'Find a place, then fine-tune it.'}</Text></View>
           </View>
           <View style={styles.searchPanel}>
             <TextField label="Search places" value={query} onChangeText={setQuery} placeholder="Medina, Milan, Istanbul…" autoCapitalize="words" returnKeyType="search" contained />
             {isSearching ? <LoadingState label="Searching places…" /> : null}
             {searchError ? <ErrorBanner message={searchError} onRetry={() => setRetryKey((value) => value + 1)} /> : null}
-            {!isSearching && !searchError && hasSearched && results.length === 0 ? <Text style={styles.empty}>No matching places. Try adding a country or region.</Text> : null}
+            {!isSearching && !searchError && hasSearched && results.length === 0 ? <Text style={presentationTextStyle(styles.empty)}>No matching places. Try adding a country or region.</Text> : null}
             {results.length > 0 ? <ScrollView keyboardShouldPersistTaps="handled" style={styles.results}>
               {results.map((result) => <Pressable accessibilityRole="button" accessibilityLabel={`Select ${result.display_name}`} key={`${result.provider}:${result.provider_place_id}`} onPress={() => selectPlace(result)} style={styles.result}>
-                <Text numberOfLines={1} style={styles.resultName}>{result.name}</Text>
-                <Text numberOfLines={2} style={styles.resultContext}>{formatPlaceContext(result)}</Text>
+                <Text numberOfLines={1} style={presentationTextStyle(styles.resultName)}>{result.name}</Text>
+                <Text numberOfLines={2} style={presentationTextStyle(styles.resultContext)}>{formatPlaceContext(result)}</Text>
               </Pressable>)}
             </ScrollView> : null}
-            <Text accessibilityRole="link" onPress={() => void Linking.openURL('https://www.geoapify.com/')} style={styles.attribution}>Powered by Geoapify</Text>
+            <Text accessibilityRole="link" onPress={() => void Linking.openURL('https://www.geoapify.com/')} style={presentationTextStyle(styles.attribution)}>Powered by Geoapify</Text>
           </View>
         </View>
         <View style={styles.sheet}>
-          {selectedPlace ? <View style={styles.selectedPlace}><Text style={styles.selectedName}>{selectedPlace.name}</Text><Text style={styles.selectedContext}>{formatPlaceContext(selectedPlace)}</Text></View> : null}
-          <Text style={styles.coordinates}>{selected ? `${selected.latitude.toFixed(6)}, ${selected.longitude.toFixed(6)}` : 'Search above or tap the map to choose a custom point.'}</Text>
+          {selectedPlace ? <View style={styles.selectedPlace}><Text style={presentationTextStyle(styles.selectedName)}>{selectedPlace.name}</Text><Text style={presentationTextStyle(styles.selectedContext)}>{formatPlaceContext(selectedPlace)}</Text></View> : null}
+          <Text style={presentationTextStyle(styles.coordinates)}>{areaOnly ? 'City location only. No private address is shared.' : selected ? `${selected.latitude.toFixed(6)}, ${selected.longitude.toFixed(6)}` : 'Search above or tap the map to choose a custom point.'}</Text>
           <View style={styles.actions}>
             {(selected || existing || place) ? <QuietButton onPress={() => onChange(null)}>Clear</QuietButton> : null}
-            <PrimaryButton disabled={!selected} onPress={() => selected && onChange({ coordinate: selected, place: selectedPlace })} style={styles.save}>Use This Place</PrimaryButton>
+            <PrimaryButton disabled={!selected || (areaOnly && !selectedPlace)} onPress={() => selected && onChange({ coordinate: selected, place: selectedPlace })} style={styles.save}>Use This Place</PrimaryButton>
           </View>
         </View>
       </SafeAreaView>
@@ -162,3 +168,4 @@ const styles = StyleSheet.create({
   marker: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.canvas, alignItems: 'center', justifyContent: 'center' },
   markerText: { color: colors.onDark, fontWeight: '900' },
 });
+const presentationBaselineStyles = styles;

@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import type { PropsWithChildren } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 
@@ -13,11 +14,13 @@ type ButtonProps = PropsWithChildren<{
 }>;
 
 function Button({ children, onPress, accessibilityLabel, disabled, loading, style, variant }: ButtonProps & { variant: 'primary' | 'secondary' | 'quiet' | 'destructive' }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const inactive = disabled || loading;
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityState={{ disabled: inactive, busy: loading }} disabled={inactive} onPress={onPress}
     style={({ pressed }) => [styles.base, styles[variant], variant === 'quiet' && styles.quietBase, pressed && styles.pressed, inactive && styles.disabled, style]}>
-    {loading ? <ActivityIndicator color={variant === 'primary' ? colors.onDark : variant === 'destructive' ? colors.danger : colors.ink} />
-      : <Text style={[styles.label, styles[`${variant}Label`]]}>{children}</Text>}
+    {loading ? <ActivityIndicator color={resolvePresentationColor(variant === 'primary' ? colors.onDark : variant === 'destructive' ? colors.danger : colors.ink, 'color', 'content')} />
+      : <Text style={presentationTextStyle([styles.label, styles[`${variant}Label`]])}>{children}</Text>}
   </Pressable>;
 }
 
@@ -34,3 +37,4 @@ const styles = StyleSheet.create({
   label: { ...typography.button }, primaryLabel: { color: colors.onDark }, secondaryLabel: { color: colors.ink }, quietLabel: { color: colors.accent }, destructiveLabel: { color: colors.danger },
   pressed: { opacity: 0.78, transform: [{ scale: 0.99 }] }, disabled: { opacity: 0.5 },
 });
+const presentationBaselineStyles = styles;

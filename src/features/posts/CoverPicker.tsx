@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useRef, useState } from 'react';
@@ -12,6 +13,8 @@ export function CoverPicker({ photos, coverId, onCancel, onConfirm }: {
   onCancel: () => void;
   onConfirm: (id: string) => Promise<void>;
 }) {
+  const styles = usePresentationStyles(presentationBaselineStyles, 'surface');
+
   const [pending, setPending] = useState(coverId ?? photos[0]?.id ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,18 +31,18 @@ export function CoverPicker({ photos, coverId, onCancel, onConfirm }: {
   return <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => { if (!lock.current) onCancel(); }}>
     <SafeAreaView style={styles.sheet}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" disabled={saving} onPress={onCancel} style={styles.action}><Text style={styles.actionText}>Cancel</Text></Pressable>
-        <Text accessibilityRole="header" style={styles.title}>Change Cover</Text>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving || !pending, busy: saving }} disabled={saving || !pending} onPress={() => void done()} style={styles.action}><Text style={[styles.actionText, styles.done, saving && styles.disabled]}>{saving ? 'Saving…' : 'Done'}</Text></Pressable>
+        <Pressable accessibilityRole="button" disabled={saving} onPress={onCancel} style={styles.action}><Text style={presentationTextStyle(styles.actionText)}>Cancel</Text></Pressable>
+        <Text accessibilityRole="header" style={presentationTextStyle(styles.title)}>Change Cover</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving || !pending, busy: saving }} disabled={saving || !pending} onPress={() => void done()} style={styles.action}><Text style={presentationTextStyle([styles.actionText, styles.done, saving && styles.disabled])}>{saving ? 'Saving…' : 'Done'}</Text></Pressable>
       </View>
-      {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={presentationTextStyle(styles.error)}>{error}</Text> : null}
       <FlatList data={photos} numColumns={3} keyExtractor={photo => photo.id} extraData={pending}
         contentContainerStyle={styles.grid} columnWrapperStyle={styles.row}
         renderItem={({ item, index }) => <Pressable accessibilityRole="button" accessibilityLabel={`Cover photo ${index + 1}`} accessibilityState={{ selected: pending === item.id, disabled: saving }} disabled={saving} onPress={() => setPending(item.id)} style={styles.photo}>
           <Image source={cachedImageSource(item.url, `photo-viewer:${item.id}`)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
-          {pending === item.id ? <View pointerEvents="none" style={styles.selection}><View style={styles.check}><Ionicons name="checkmark" size={19} color="#FFFFFF" /></View></View> : null}
+          {pending === item.id ? <View pointerEvents="none" style={styles.selection}><View style={styles.check}><Ionicons name="checkmark" size={19} color={resolvePresentationColor("#FFFFFF", 'color', 'content')} /></View></View> : null}
         </Pressable>}
-        ListEmptyComponent={<Text style={styles.empty}>Add a photo to choose a cover.</Text>}
+        ListEmptyComponent={<Text style={presentationTextStyle(styles.empty)}>Add a photo to choose a cover.</Text>}
       />
     </SafeAreaView>
   </Modal>;
@@ -58,3 +61,4 @@ const styles = StyleSheet.create({
   error: { color: '#FF3B30', paddingHorizontal: 16, paddingBottom: 8 },
   empty: { color: '#8E8E93', paddingVertical: 24, textAlign: 'center' },
 });
+const presentationBaselineStyles = styles;

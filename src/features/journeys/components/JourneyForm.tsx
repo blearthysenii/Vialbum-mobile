@@ -1,3 +1,5 @@
+import { usePresentationStyles, resolvePresentationColor, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
+import { COUNTRIES } from '@/features/journeys/countries';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -53,210 +55,6 @@ const toApiDate = (value: Date) => {
 };
 const displayDate = (value: string) => formatCalendarDate(value, { month: 'long', day: 'numeric', year: 'numeric' });
 
-type CountryOption = {
-  code: string;
-  name: string;
-};
-
-const COUNTRIES: CountryOption[] = [
-  { code: 'AF', name: 'Afghanistan' },
-  { code: 'AL', name: 'Albania' },
-  { code: 'DZ', name: 'Algeria' },
-  { code: 'AD', name: 'Andorra' },
-  { code: 'AO', name: 'Angola' },
-  { code: 'AG', name: 'Antigua and Barbuda' },
-  { code: 'AR', name: 'Argentina' },
-  { code: 'AM', name: 'Armenia' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'AT', name: 'Austria' },
-  { code: 'AZ', name: 'Azerbaijan' },
-  { code: 'BS', name: 'Bahamas' },
-  { code: 'BH', name: 'Bahrain' },
-  { code: 'BD', name: 'Bangladesh' },
-  { code: 'BB', name: 'Barbados' },
-  { code: 'BY', name: 'Belarus' },
-  { code: 'BE', name: 'Belgium' },
-  { code: 'BZ', name: 'Belize' },
-  { code: 'BJ', name: 'Benin' },
-  { code: 'BT', name: 'Bhutan' },
-  { code: 'BO', name: 'Bolivia' },
-  { code: 'BA', name: 'Bosnia and Herzegovina' },
-  { code: 'BW', name: 'Botswana' },
-  { code: 'BR', name: 'Brazil' },
-  { code: 'BN', name: 'Brunei' },
-  { code: 'BG', name: 'Bulgaria' },
-  { code: 'BF', name: 'Burkina Faso' },
-  { code: 'BI', name: 'Burundi' },
-  { code: 'CV', name: 'Cabo Verde' },
-  { code: 'KH', name: 'Cambodia' },
-  { code: 'CM', name: 'Cameroon' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'CF', name: 'Central African Republic' },
-  { code: 'TD', name: 'Chad' },
-  { code: 'CL', name: 'Chile' },
-  { code: 'CN', name: 'China' },
-  { code: 'CO', name: 'Colombia' },
-  { code: 'KM', name: 'Comoros' },
-  { code: 'CG', name: 'Congo' },
-  { code: 'CD', name: 'Congo, Democratic Republic of the' },
-  { code: 'CR', name: 'Costa Rica' },
-  { code: 'CI', name: "Côte d'Ivoire" },
-  { code: 'HR', name: 'Croatia' },
-  { code: 'CU', name: 'Cuba' },
-  { code: 'CY', name: 'Cyprus' },
-  { code: 'CZ', name: 'Czechia' },
-  { code: 'DK', name: 'Denmark' },
-  { code: 'DJ', name: 'Djibouti' },
-  { code: 'DM', name: 'Dominica' },
-  { code: 'DO', name: 'Dominican Republic' },
-  { code: 'EC', name: 'Ecuador' },
-  { code: 'EG', name: 'Egypt' },
-  { code: 'SV', name: 'El Salvador' },
-  { code: 'GQ', name: 'Equatorial Guinea' },
-  { code: 'ER', name: 'Eritrea' },
-  { code: 'EE', name: 'Estonia' },
-  { code: 'SZ', name: 'Eswatini' },
-  { code: 'ET', name: 'Ethiopia' },
-  { code: 'FJ', name: 'Fiji' },
-  { code: 'FI', name: 'Finland' },
-  { code: 'FR', name: 'France' },
-  { code: 'GA', name: 'Gabon' },
-  { code: 'GM', name: 'Gambia' },
-  { code: 'GE', name: 'Georgia' },
-  { code: 'DE', name: 'Germany' },
-  { code: 'GH', name: 'Ghana' },
-  { code: 'GR', name: 'Greece' },
-  { code: 'GD', name: 'Grenada' },
-  { code: 'GT', name: 'Guatemala' },
-  { code: 'GN', name: 'Guinea' },
-  { code: 'GW', name: 'Guinea-Bissau' },
-  { code: 'GY', name: 'Guyana' },
-  { code: 'HT', name: 'Haiti' },
-  { code: 'HN', name: 'Honduras' },
-  { code: 'HU', name: 'Hungary' },
-  { code: 'IS', name: 'Iceland' },
-  { code: 'IN', name: 'India' },
-  { code: 'ID', name: 'Indonesia' },
-  { code: 'IR', name: 'Iran' },
-  { code: 'IQ', name: 'Iraq' },
-  { code: 'IE', name: 'Ireland' },
-  { code: 'IL', name: 'Israel' },
-  { code: 'IT', name: 'Italy' },
-  { code: 'JM', name: 'Jamaica' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'JO', name: 'Jordan' },
-  { code: 'KZ', name: 'Kazakhstan' },
-  { code: 'KE', name: 'Kenya' },
-  { code: 'KI', name: 'Kiribati' },
-  { code: 'KW', name: 'Kuwait' },
-  { code: 'KG', name: 'Kyrgyzstan' },
-  { code: 'LA', name: 'Laos' },
-  { code: 'LV', name: 'Latvia' },
-  { code: 'LB', name: 'Lebanon' },
-  { code: 'LS', name: 'Lesotho' },
-  { code: 'LR', name: 'Liberia' },
-  { code: 'LY', name: 'Libya' },
-  { code: 'LI', name: 'Liechtenstein' },
-  { code: 'LT', name: 'Lithuania' },
-  { code: 'LU', name: 'Luxembourg' },
-  { code: 'MG', name: 'Madagascar' },
-  { code: 'MW', name: 'Malawi' },
-  { code: 'MY', name: 'Malaysia' },
-  { code: 'MV', name: 'Maldives' },
-  { code: 'ML', name: 'Mali' },
-  { code: 'MT', name: 'Malta' },
-  { code: 'MH', name: 'Marshall Islands' },
-  { code: 'MR', name: 'Mauritania' },
-  { code: 'MU', name: 'Mauritius' },
-  { code: 'MX', name: 'Mexico' },
-  { code: 'FM', name: 'Micronesia' },
-  { code: 'MD', name: 'Moldova' },
-  { code: 'MC', name: 'Monaco' },
-  { code: 'MN', name: 'Mongolia' },
-  { code: 'ME', name: 'Montenegro' },
-  { code: 'MA', name: 'Morocco' },
-  { code: 'MZ', name: 'Mozambique' },
-  { code: 'MM', name: 'Myanmar' },
-  { code: 'NA', name: 'Namibia' },
-  { code: 'NR', name: 'Nauru' },
-  { code: 'NP', name: 'Nepal' },
-  { code: 'NL', name: 'Netherlands' },
-  { code: 'NZ', name: 'New Zealand' },
-  { code: 'NI', name: 'Nicaragua' },
-  { code: 'NE', name: 'Niger' },
-  { code: 'NG', name: 'Nigeria' },
-  { code: 'KP', name: 'North Korea' },
-  { code: 'MK', name: 'North Macedonia' },
-  { code: 'NO', name: 'Norway' },
-  { code: 'OM', name: 'Oman' },
-  { code: 'PK', name: 'Pakistan' },
-  { code: 'PW', name: 'Palau' },
-  { code: 'PS', name: 'Palestine' },
-  { code: 'PA', name: 'Panama' },
-  { code: 'PG', name: 'Papua New Guinea' },
-  { code: 'PY', name: 'Paraguay' },
-  { code: 'PE', name: 'Peru' },
-  { code: 'PH', name: 'Philippines' },
-  { code: 'PL', name: 'Poland' },
-  { code: 'PT', name: 'Portugal' },
-  { code: 'QA', name: 'Qatar' },
-  { code: 'RO', name: 'Romania' },
-  { code: 'RU', name: 'Russia' },
-  { code: 'RW', name: 'Rwanda' },
-  { code: 'KN', name: 'Saint Kitts and Nevis' },
-  { code: 'LC', name: 'Saint Lucia' },
-  { code: 'VC', name: 'Saint Vincent and the Grenadines' },
-  { code: 'WS', name: 'Samoa' },
-  { code: 'SM', name: 'San Marino' },
-  { code: 'ST', name: 'Sao Tome and Principe' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'SN', name: 'Senegal' },
-  { code: 'RS', name: 'Serbia' },
-  { code: 'SC', name: 'Seychelles' },
-  { code: 'SL', name: 'Sierra Leone' },
-  { code: 'SG', name: 'Singapore' },
-  { code: 'SK', name: 'Slovakia' },
-  { code: 'SI', name: 'Slovenia' },
-  { code: 'SB', name: 'Solomon Islands' },
-  { code: 'SO', name: 'Somalia' },
-  { code: 'ZA', name: 'South Africa' },
-  { code: 'KR', name: 'South Korea' },
-  { code: 'SS', name: 'South Sudan' },
-  { code: 'ES', name: 'Spain' },
-  { code: 'LK', name: 'Sri Lanka' },
-  { code: 'SD', name: 'Sudan' },
-  { code: 'SR', name: 'Suriname' },
-  { code: 'SE', name: 'Sweden' },
-  { code: 'CH', name: 'Switzerland' },
-  { code: 'SY', name: 'Syria' },
-  { code: 'TW', name: 'Taiwan' },
-  { code: 'TJ', name: 'Tajikistan' },
-  { code: 'TZ', name: 'Tanzania' },
-  { code: 'TH', name: 'Thailand' },
-  { code: 'TL', name: 'Timor-Leste' },
-  { code: 'TG', name: 'Togo' },
-  { code: 'TO', name: 'Tonga' },
-  { code: 'TT', name: 'Trinidad and Tobago' },
-  { code: 'TN', name: 'Tunisia' },
-  { code: 'TR', name: 'Türkiye' },
-  { code: 'TM', name: 'Turkmenistan' },
-  { code: 'TV', name: 'Tuvalu' },
-  { code: 'UG', name: 'Uganda' },
-  { code: 'UA', name: 'Ukraine' },
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'US', name: 'United States' },
-  { code: 'UY', name: 'Uruguay' },
-  { code: 'UZ', name: 'Uzbekistan' },
-  { code: 'VU', name: 'Vanuatu' },
-  { code: 'VA', name: 'Vatican City' },
-  { code: 'VE', name: 'Venezuela' },
-  { code: 'VN', name: 'Vietnam' },
-  { code: 'YE', name: 'Yemen' },
-  { code: 'ZM', name: 'Zambia' },
-  { code: 'ZW', name: 'Zimbabwe' },
-  { code: 'XK', name: 'Kosovo' },
-];
 
 const flagEmoji = (countryCode: string) =>
   countryCode
@@ -264,6 +62,8 @@ const flagEmoji = (countryCode: string) =>
     .replace(/./g, (character) => String.fromCodePoint(127397 + character.charCodeAt(0)));
 
 export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, initialValues, onSubmit, onCancel }: { embedded?: boolean; eyebrow: string; heading: string; submitLabel: string; initialValues: JourneyFormValues; onSubmit: (values: JourneyFormValues) => Promise<void>; onCancel?: () => void }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const tabBarScroll = useTabBarScroll();
   const scrollRef = useRef<ScrollView>(null);
   const descriptionRef = useRef<View>(null);
@@ -447,11 +247,11 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
             entering={embedded ? FadeInDown.duration(320) : undefined}
             style={[styles.intro, embedded && styles.embeddedIntro]}
           >
-            {!embedded ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-            <Text style={[styles.heading, embedded && styles.embeddedHeading]}>{heading}</Text>
+            {!embedded ? <Text style={presentationTextStyle(styles.eyebrow)}>{eyebrow}</Text> : null}
+            <Text style={presentationTextStyle([styles.heading, embedded && styles.embeddedHeading])}>{heading}</Text>
             {embedded ? (
-              <Text style={styles.introCopy}>
-                Give this journey a home. Add photos and memories whenever you are ready.
+              <Text style={presentationTextStyle(styles.introCopy)}>
+                Give this journey a home. Add photos whenever you are ready.
               </Text>
             ) : null}
           </Animated.View>
@@ -512,18 +312,18 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
                 style={[embedded ? styles.compactField : undefined, styles.countryField]}
               >
                 <View style={styles.countryTextWrap}>
-                  <Text style={styles.countryLabel}>COUNTRY</Text>
+                  <Text style={presentationTextStyle(styles.countryLabel)}>COUNTRY</Text>
                   <View style={styles.countryValueRow}>
-                    {selectedCountry ? <Text style={styles.countryFlag}>{flagEmoji(selectedCountry.code)}</Text> : null}
+                    {selectedCountry ? <Text style={presentationTextStyle(styles.countryFlag)}>{flagEmoji(selectedCountry.code)}</Text> : null}
                     <Text
                       numberOfLines={1}
-                      style={[styles.countryValue, !values.country && styles.countryPlaceholder]}
+                      style={presentationTextStyle([styles.countryValue, !values.country && styles.countryPlaceholder])}
                     >
                       {values.country || 'Select a country'}
                     </Text>
                   </View>
                 </View>
-                <Ionicons color={colors.subtle} name="chevron-forward" size={18} />
+                <Ionicons color={resolvePresentationColor(colors.subtle, 'color', 'content')} name="chevron-forward" size={18} />
               </Pressable>
             </Animated.View>
 
@@ -543,14 +343,14 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
                 }}
                 style={[styles.location, embedded && styles.embeddedCard]}
               >
-                {embedded ? <Ionicons color={colors.muted} name="location-outline" size={21} /> : null}
+                {embedded ? <Ionicons color={resolvePresentationColor(colors.muted, 'color', 'content')} name="location-outline" size={21} /> : null}
                 <View style={styles.locationCopy}>
-                  <Text style={styles.label}>LOCATION / PLACE — OPTIONAL</Text>
-                  <Text numberOfLines={1} style={styles.locationValue}>
+                  <Text style={presentationTextStyle(styles.label)}>LOCATION / PLACE — OPTIONAL</Text>
+                  <Text numberOfLines={1} style={presentationTextStyle(styles.locationValue)}>
                     {values.place?.display_name ?? formatCoordinates(values.latitude, values.longitude) ?? 'Search or choose on map'}
                   </Text>
                 </View>
-                {embedded ? <Ionicons color={colors.subtle} name="chevron-forward" size={18} /> : <Text style={styles.locationAction}>{values.latitude ? 'Change' : 'Add'}</Text>}
+                {embedded ? <Ionicons color={resolvePresentationColor(colors.subtle, 'color', 'content')} name="chevron-forward" size={18} /> : <Text style={presentationTextStyle(styles.locationAction)}>{values.latitude ? 'Change' : 'Add'}</Text>}
               </Pressable>
             </Animated.View>
 
@@ -569,11 +369,11 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
                   value={toDate(values[activeDate])}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={changeDate}
+                  onChange={changeDate} themeVariant={presentationInterfaceStyle()}
                 />
                 {Platform.OS === 'ios' ? (
                   <Pressable onPress={() => setActiveDate(null)} style={styles.dateDone}>
-                    <Text style={styles.dateDoneText}>Done</Text>
+                    <Text style={presentationTextStyle(styles.dateDoneText)}>Done</Text>
                   </Pressable>
                 ) : null}
               </Animated.View>
@@ -648,7 +448,7 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
               <View style={styles.countryModalHeader}>
                 <View style={styles.countryModalGrabber} />
                 <View style={styles.countryModalTitleRow}>
-                  <Text style={styles.countryModalTitle}>Select a country</Text>
+                  <Text style={presentationTextStyle(styles.countryModalTitle)}>Select a country</Text>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Close country selector"
@@ -656,21 +456,21 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
                     onPress={() => setShowCountrySelector(false)}
                     style={styles.countryModalClose}
                   >
-                    <Ionicons name="close" size={19} color="#111111" />
+                    <Ionicons name="close" size={19} color={resolvePresentationColor("#111111", 'color', 'content')} />
                   </Pressable>
                 </View>
 
                 <View style={styles.countrySearchBar}>
-                  <Ionicons name="search" size={18} color="#8E8E93" />
+                  <Ionicons name="search" size={18} color={resolvePresentationColor("#8E8E93", 'color', 'content')} />
                   <TextInput
                     autoCorrect={false}
                     autoCapitalize="none"
                     clearButtonMode="while-editing"
                     placeholder="Search countries"
-                    placeholderTextColor="#8E8E93"
+                    placeholderTextColor={resolvePresentationColor("#8E8E93", 'placeholderTextColor', 'control')}
                     value={countrySearch}
                     onChangeText={setCountrySearch}
-                    style={styles.countrySearchInput}
+                    style={presentationTextStyle(styles.countrySearchInput)} keyboardAppearance={presentationInterfaceStyle()}
                   />
                 </View>
               </View>
@@ -698,16 +498,16 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
                         pressed && styles.countryRowPressed,
                       ]}
                     >
-                      <Text style={styles.countryRowFlag}>{flagEmoji(item.code)}</Text>
-                      <Text style={styles.countryRowName}>{item.name}</Text>
-                      {isSelected ? <Ionicons name="checkmark" size={20} color={colors.accent} /> : null}
+                      <Text style={presentationTextStyle(styles.countryRowFlag)}>{flagEmoji(item.code)}</Text>
+                      <Text style={presentationTextStyle(styles.countryRowName)}>{item.name}</Text>
+                      {isSelected ? <Ionicons name="checkmark" size={20} color={resolvePresentationColor(colors.accent, 'color', 'content')} /> : null}
                       {index < filteredCountries.length - 1 ? <View style={styles.countryRowDivider} /> : null}
                     </Pressable>
                   );
                 }}
                 ListEmptyComponent={
                   <View style={styles.countryEmpty}>
-                    <Text style={styles.countryEmptyText}>No countries found</Text>
+                    <Text style={presentationTextStyle(styles.countryEmptyText)}>No countries found</Text>
                   </View>
                 }
               />
@@ -732,6 +532,8 @@ export function JourneyForm({ embedded = false, eyebrow, heading, submitLabel, i
 }
 
 function DateButton({ label, value, onPress, embedded = false }: { label: string; value: string; onPress: () => void; embedded?: boolean }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -751,8 +553,8 @@ function DateButton({ label, value, onPress, embedded = false }: { label: string
         }}
         style={styles.datePressable}
       >
-        <Text style={styles.label}>{label.toUpperCase()}</Text>
-        <Text style={styles.dateValue}>{displayDate(value)}</Text>
+        <Text style={presentationTextStyle(styles.label)}>{label.toUpperCase()}</Text>
+        <Text style={presentationTextStyle(styles.dateValue)}>{displayDate(value)}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -1031,3 +833,4 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 });
+const presentationBaselineStyles = styles;

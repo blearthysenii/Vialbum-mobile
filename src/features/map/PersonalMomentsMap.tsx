@@ -1,3 +1,5 @@
+import { darkMapStyle } from '@/theme/map';
+import { usePresentationStyles, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -38,6 +40,8 @@ const mapStyle = [
 const worldRegion: MapRegion = { latitude: 20, longitude: 0, latitudeDelta: 120, longitudeDelta: 160 };
 
 export default function MapScreen() {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const { filter: requestedFilter } = useLocalSearchParams<{ filter?: string }>();
   const mapRef = useRef<MapView>(null);
   const hasFitted = useRef(false);
@@ -151,16 +155,16 @@ export default function MapScreen() {
 
   if (loading && items.length === 0) return <SafeAreaView style={styles.center}><LoadingState label="Gathering your places…" /></SafeAreaView>;
   if (!loading && allMapped.length === 0) return <SafeAreaView style={styles.empty}>
-    <Text style={styles.eyebrow}>PLACES</Text><Text style={styles.emptyTitle}>Your world,{`\n`}remembered.</Text><View style={styles.orbit}><View style={styles.emptyPin}><Text style={styles.pinLetter}>V</Text></View></View>
-    <Text style={styles.emptyCopy}>{error ? 'Your places could not be loaded.' : 'Add a location to a journey, memory, or photo and it will become part of your map.'}</Text>
-    {error ? <Pressable accessibilityRole="button" onPress={() => { setLoading(true); void load(); }}><Text style={styles.retry}>Try Again</Text></Pressable> : null}
+    <Text style={presentationTextStyle(styles.eyebrow)}>PLACES</Text><Text style={presentationTextStyle(styles.emptyTitle)}>Your world,{`\n`}remembered.</Text><View style={styles.orbit}><View style={styles.emptyPin}><Text style={presentationTextStyle(styles.pinLetter)}>V</Text></View></View>
+    <Text style={presentationTextStyle(styles.emptyCopy)}>{error ? 'Your places could not be loaded.' : 'Add a location to a journey, memory, or photo and it will become part of your map.'}</Text>
+    {error ? <Pressable accessibilityRole="button" onPress={() => { setLoading(true); void load(); }}><Text style={presentationTextStyle(styles.retry)}>Try Again</Text></Pressable> : null}
   </SafeAreaView>;
 
   return <View style={styles.screen}>
     <MapView
       ref={mapRef}
       style={StyleSheet.absoluteFill}
-      customMapStyle={mapStyle}
+      customMapStyle={presentationInterfaceStyle() === 'dark' ? darkMapStyle : mapStyle}
       initialRegion={worldRegion as Region}
       rotateEnabled={false}
       onMapReady={() => setMapReady(true)}
@@ -170,7 +174,7 @@ export default function MapScreen() {
           setSelectedKey(null);
           setOverlapItems([]);
         }
-      }}
+      }} userInterfaceStyle={presentationInterfaceStyle()}
     >
       {markers.map((marker) => <MapMarkerView
         key={marker.key}
@@ -181,10 +185,10 @@ export default function MapScreen() {
     </MapView>
     <SafeAreaView pointerEvents="box-none" style={styles.overlay} edges={['top']}>
       <View style={styles.header}>
-        <View><Text style={styles.eyebrow}>PLACES</Text><Text style={styles.mapTitle}>Your world</Text></View>
+        <View><Text style={presentationTextStyle(styles.eyebrow)}>PLACES</Text><Text style={presentationTextStyle(styles.mapTitle)}>Your world</Text></View>
         <View style={styles.status}>
-          {loading && items.length > 0 ? <Text style={styles.refreshing}>Refreshing…</Text> : null}
-          {error ? <Pressable accessibilityRole="button" onPress={() => void load()}><Text style={styles.retry}>Retry</Text></Pressable> : null}
+          {loading && items.length > 0 ? <Text style={presentationTextStyle(styles.refreshing)}>Refreshing…</Text> : null}
+          {error ? <Pressable accessibilityRole="button" onPress={() => void load()}><Text style={presentationTextStyle(styles.retry)}>Retry</Text></Pressable> : null}
         </View>
       </View>
       <View accessibilityRole="tablist" style={styles.filters}>{filters.map((option) => <Pressable
@@ -197,8 +201,8 @@ export default function MapScreen() {
           setOverlapItems([]);
         }}
         style={[styles.filter, filter === option.value && styles.filterActive]}
-      ><Text style={[styles.filterText, filter === option.value && styles.filterTextActive]}>{option.label}</Text></Pressable>)}</View>
-      {filtered.length === 0 ? <View style={styles.filterEmpty}><Text style={styles.filterEmptyText}>No mapped {filter === 'all' ? 'items' : filter === 'memory' ? 'memories' : `${filter}s`} yet.</Text></View> : null}
+      ><Text style={presentationTextStyle([styles.filterText, filter === option.value && styles.filterTextActive])}>{option.label}</Text></Pressable>)}</View>
+      {filtered.length === 0 ? <View style={styles.filterEmpty}><Text style={presentationTextStyle(styles.filterEmptyText)}>No mapped {filter === 'all' ? 'items' : filter === 'memory' ? 'memories' : `${filter}s`} yet.</Text></View> : null}
     </SafeAreaView>
     {overlapItems.length > 0 ? <MapOverlapCard items={overlapItems} onSelect={selectItem} onClose={() => setOverlapItems([])} /> : null}
     {selected ? <MapSelectionCard
@@ -228,3 +232,4 @@ const styles = StyleSheet.create({
   pinLetter: { color: colors.canvas, fontSize: 22, fontWeight: '900' },
   emptyCopy: { marginTop: 44, maxWidth: 300, color: colors.muted, fontSize: 16, lineHeight: 24, textAlign: 'center' },
 });
+const presentationBaselineStyles = styles;

@@ -1,3 +1,5 @@
+import { useThemedMarker } from '@/theme/useThemedMarker';
+import { usePresentationStyles, presentationTextStyle } from '@/theme/presentation';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Marker, type MarkerPressEvent } from 'react-native-maps';
@@ -12,6 +14,9 @@ type Props = {
 };
 
 export const MapMarkerView = memo(function MapMarkerView({ marker, selected, onPress }: Props) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
+  const markerRef = useThemedMarker();
   const isCluster = marker.kind === 'cluster';
   const type = marker.kind === 'item' ? marker.item.type : null;
   const label = isCluster ? `${marker.items.length} items` : `${type}: ${marker.item.title}`;
@@ -19,7 +24,7 @@ export const MapMarkerView = memo(function MapMarkerView({ marker, selected, onP
     event.stopPropagation();
     onPress(marker);
   };
-  return <Marker accessibilityLabel={label} coordinate={marker.coordinate} onPress={press} tracksViewChanges={false}>
+  return <Marker ref={markerRef} accessibilityLabel={label} coordinate={marker.coordinate} onPress={press} tracksViewChanges={false}>
     <View style={[
       styles.marker,
       isCluster && styles.cluster,
@@ -28,7 +33,7 @@ export const MapMarkerView = memo(function MapMarkerView({ marker, selected, onP
       type === 'photo' && styles.photo,
       selected && styles.selected,
     ]}>
-      <Text style={[styles.text, type !== 'journey' && !isCluster && styles.subtleText]}>
+      <Text style={presentationTextStyle([styles.text, type !== 'journey' && !isCluster && styles.subtleText])}>
         {isCluster ? marker.items.length : type === 'journey' ? 'V' : type === 'memory' ? 'M' : 'P'}
       </Text>
     </View>
@@ -45,3 +50,4 @@ const styles = StyleSheet.create({
   text: { color: '#FFF', fontWeight: '900', fontSize: 13 },
   subtleText: { fontSize: 10 },
 });
+const presentationBaselineStyles = styles;

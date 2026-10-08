@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationBlurTint, presentationInterfaceStyle, presentationTextStyle } from '@/theme/presentation';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
@@ -23,6 +24,8 @@ import { formatCalendarDate, formatCoordinates } from '@/utils/format';
 type Props = { journeyId: string; initialDate: string; memory: Memory | null; onClose: () => void; onSaved: (memory: Memory) => void; onDeleted: (id: string) => void };
 
 export function MemoryEditor({ journeyId, initialDate, memory, onClose, onSaved, onDeleted }: Props) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const [title, setTitle] = useState(memory?.title ?? '');
   const [caption, setCaption] = useState(memory?.caption ?? '');
   const [date, setDate] = useState(memory?.memory_date ?? initialDate);
@@ -68,14 +71,14 @@ export function MemoryEditor({ journeyId, initialDate, memory, onClose, onSaved,
     onRequestClose={() => { if (!busy) onClose(); }}
   >
     <SafeAreaView style={styles.safe}>
-      <BlurView pointerEvents="none" intensity={72} tint="systemMaterialLight" style={StyleSheet.absoluteFill} />
+      <BlurView pointerEvents="none" intensity={72} tint={presentationBlurTint("systemMaterialLight")} style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.glassWash} />
       <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
         <SheetHeader title={memory ? 'Edit Memory' : 'New Memory'} onClose={onClose} />
         <View style={styles.intro}>
-          <Text style={styles.heading}>{memory ? 'Edit memory.' : 'Add a memory.'}</Text>
-          <Text style={styles.introCopy}>Keep the story, thought, or detail that made this moment yours.</Text>
+          <Text style={presentationTextStyle(styles.heading)}>{memory ? 'Edit memory.' : 'Add a memory.'}</Text>
+          <Text style={presentationTextStyle(styles.introCopy)}>Keep the story, thought, or detail that made this moment yours.</Text>
         </View>
         <View style={styles.textCard}>
           <View style={styles.compactField}><TextField label="Title" accessibilityLabel="Memory title" editable={!busy} value={title} onChangeText={setTitle} maxLength={160} placeholder="A moment to remember" style={styles.compactInput} /></View>
@@ -83,18 +86,18 @@ export function MemoryEditor({ journeyId, initialDate, memory, onClose, onSaved,
           <View style={styles.notesField}><TextField label="Notes — optional" accessibilityLabel="Memory notes" editable={!busy} value={caption} onChangeText={setCaption} multiline placeholder="What made this moment special?" style={styles.notesInput} /></View>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={`Memory date, ${formatCalendarDate(date)}`} disabled={busy} onPress={() => setShowDate(!showDate)} style={styles.optionCard}>
-          <Ionicons name="calendar-outline" size={21} color={colors.muted} />
-          <View style={styles.optionCopy}><Text style={styles.label}>DATE</Text><Text style={styles.date}>{formatCalendarDate(date, { month: 'long', day: 'numeric', year: 'numeric' })}</Text></View>
-          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          <Ionicons name="calendar-outline" size={21} color={resolvePresentationColor(colors.muted, 'color', 'content')} />
+          <View style={styles.optionCopy}><Text style={presentationTextStyle(styles.label)}>DATE</Text><Text style={presentationTextStyle(styles.date)}>{formatCalendarDate(date, { month: 'long', day: 'numeric', year: 'numeric' })}</Text></View>
+          <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor(colors.subtle, 'color', 'content')} />
         </Pressable>
         {showDate ? <DateTimePicker value={new Date(`${date}T12:00:00`)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} disabled={busy} onChange={(event, selected) => {
           if (Platform.OS !== 'ios') setShowDate(false);
           if (event.type !== 'dismissed' && selected) setDate(`${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`);
-        }} /> : null}
+        }} themeVariant={presentationInterfaceStyle()} /> : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Choose memory location" disabled={busy} onPress={() => setShowLocation(true)} style={styles.optionCard}>
-          <Ionicons name="location-outline" size={21} color={colors.muted} />
-          <View style={styles.optionCopy}><Text style={styles.label}>LOCATION / PLACE — OPTIONAL</Text><Text numberOfLines={2} style={styles.date}>{place ? formatPlaceContext(place) || place.display_name : formatCoordinates(latitude, longitude) ?? 'Search or choose on map'}</Text></View>
-          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          <Ionicons name="location-outline" size={21} color={resolvePresentationColor(colors.muted, 'color', 'content')} />
+          <View style={styles.optionCopy}><Text style={presentationTextStyle(styles.label)}>LOCATION / PLACE — OPTIONAL</Text><Text numberOfLines={2} style={presentationTextStyle(styles.date)}>{place ? formatPlaceContext(place) || place.display_name : formatCoordinates(latitude, longitude) ?? 'Search or choose on map'}</Text></View>
+          <Ionicons name="chevron-forward" size={18} color={resolvePresentationColor(colors.subtle, 'color', 'content')} />
         </Pressable>
         {error ? <ErrorBanner message={error} /> : null}
         <PrimaryButton loading={busy} onPress={() => void save()} style={styles.saveButton}>Save Memory</PrimaryButton>
@@ -130,3 +133,4 @@ const styles = StyleSheet.create({
   optionCopy: { flex: 1, minWidth: 0 }, date: { ...typography.body, color: '#111111', fontSize: 16, lineHeight: 21, marginTop: 5 },
   saveButton: { marginTop: 2, borderRadius: radii.round },
 });
+const presentationBaselineStyles = styles;

@@ -7,7 +7,7 @@ const vm = require('node:vm');
 function model(request, detail) {
   const module = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync('src/features/posts/data.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  vm.runInNewContext(code, { module, exports: module.exports, require: name => name === '@/api/client' ? { apiRequest: request } : { discoverApi: { detail } } });
+  vm.runInNewContext(code, { module, exports: module.exports, require: require('./appearance-test-adapter.cjs').wrap(name => name === '@/api/client' ? { apiRequest: request } : { discoverApi: { detail } }) });
   return module.exports;
 }
 

@@ -6,6 +6,7 @@ export type Journey = {
   title: string;
   destination: string;
   country: string;
+  country_code?: string | null;
   start_date: string;
   end_date: string;
   description: string | null;
@@ -22,6 +23,6 @@ export type Journey = {
 export type JourneyInput = Pick<
   Journey,
   'title' | 'destination' | 'country' | 'start_date' | 'end_date' | 'description' | 'latitude' | 'longitude'
-> & { visibility?: Journey['visibility']; cover_media_url?: string | null; place?: PlaceSelection | null };
+> & { request_id?: string; visibility?: Journey['visibility']; cover_media_url?: string | null; place?: PlaceSelection | null };
 
 export type JourneyUpdate = Partial<JourneyInput>;

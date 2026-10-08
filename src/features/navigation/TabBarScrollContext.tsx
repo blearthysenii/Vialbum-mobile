@@ -1,24 +1,33 @@
+import { createInteractionLock } from './interactionLock';
 import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 
 type TabBarScrollContextValue = {
   collapsed: boolean;
+  interactionLocked: boolean;
+  isInteractionLocked: () => boolean;
+  lockInteraction: () => () => void;
   expand: () => void;
   setCollapsed: (collapsed: boolean) => void;
 };
 
 const TabBarScrollContext = createContext<TabBarScrollContextValue>({
   collapsed: false,
+  interactionLocked: false,
+  isInteractionLocked: () => false,
+  lockInteraction: () => () => undefined,
   expand: () => undefined,
   setCollapsed: () => undefined,
 });
 
 export function TabBarScrollProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [interactionLocked, setInteractionLocked] = useState(false);
+  const interactionLock = useRef(createInteractionLock(setInteractionLocked)).current;
   const expand = useCallback(() => setCollapsed(false), []);
 
   return (
-    <TabBarScrollContext.Provider value={{ collapsed, expand, setCollapsed }}>
+    <TabBarScrollContext.Provider value={{ collapsed, expand, setCollapsed, interactionLocked, isInteractionLocked: interactionLock.isLocked, lockInteraction: interactionLock.acquire }}>
       {children}
     </TabBarScrollContext.Provider>
   );

@@ -1,3 +1,4 @@
+import { usePresentationStyles, resolvePresentationColor, presentationTextStyle } from '@/theme/presentation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
@@ -10,6 +11,8 @@ import { followsApi, type FollowUser } from './api';
 import { FollowButton } from './FollowButton';
 
 export function ConnectionsScreen({ kind }: { kind: 'followers' | 'following' }) {
+  const styles = usePresentationStyles(presentationBaselineStyles);
+
   const theme = useProfileTheme();
   const [items, setItems] = useState<FollowUser[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -37,17 +40,18 @@ export function ConnectionsScreen({ kind }: { kind: 'followers' | 'following' })
     void load(null);
     return () => { request.current?.abort(); busy.current = false; };
   }, [load]));
-  return <SafeAreaView style={[styles.screen, { backgroundColor: theme.canvas }]}>
-    <View style={styles.nav}><Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><Ionicons name="chevron-back" size={25} color={theme.ink} /></Pressable><Text style={[styles.title, { color: theme.ink }]}>{kind === 'followers' ? 'Followers' : 'Following'}</Text><View style={styles.back} /></View>
+  return <SafeAreaView style={[styles.screen, { backgroundColor: resolvePresentationColor(theme.canvas, 'backgroundColor', 'canvas') }]}>
+    <View style={styles.nav}><Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.back}><Ionicons name="chevron-back" size={25} color={resolvePresentationColor(theme.ink, 'color', 'content')} /></Pressable><Text style={presentationTextStyle([styles.title, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{kind === 'followers' ? 'Followers' : 'Following'}</Text><View style={styles.back} /></View>
     <FlatList data={items} keyExtractor={(item) => item.id} contentContainerStyle={styles.content}
       renderItem={({ item }) => <View style={styles.row}><Pressable accessibilityRole="button" accessibilityLabel={`Open ${item.username}'s profile`} onPress={() => router.push(`/public-profile/${item.id}`)} style={styles.person}>
-        <ProfileAvatarImage source={item.avatar_url} label={item.username} cacheKey={`creator:${item.id}`} style={styles.avatar} fallbackIconSize={23} /><View style={styles.copy}><Text numberOfLines={1} style={[styles.name, { color: theme.ink }]}>{item.display_name}</Text><Text numberOfLines={1} style={{ color: theme.muted }}>@{item.username}</Text></View>
+        <ProfileAvatarImage source={item.avatar_url} label={item.username} cacheKey={`creator:${item.id}`} style={styles.avatar} fallbackIconSize={23} /><View style={styles.copy}><Text numberOfLines={1} style={presentationTextStyle([styles.name, { color: resolvePresentationColor(theme.ink, 'color', 'content') }])}>{item.display_name}</Text><Text numberOfLines={1} style={presentationTextStyle({ color: resolvePresentationColor(theme.muted, 'color', 'content') })}>@{item.username}</Text></View>
       </Pressable><FollowButton id={item.id} initial={item.is_following} compact /></View>}
       ListHeaderComponent={error ? <DiscoverError message={error} theme={theme} onRetry={() => void load(retryCursor.current)} /> : null}
-      ListEmptyComponent={loaded && !error ? <Text style={[styles.empty, { color: theme.muted }]}>{kind === 'followers' ? 'No followers yet.' : "You're not following anyone yet."}</Text> : null}
-      ListFooterComponent={loading ? <ActivityIndicator style={styles.empty} color={theme.muted} /> : null}
+      ListEmptyComponent={loaded && !error ? <Text style={presentationTextStyle([styles.empty, { color: resolvePresentationColor(theme.muted, 'color', 'content') }])}>{kind === 'followers' ? 'No followers yet.' : "You're not following anyone yet."}</Text> : null}
+      ListFooterComponent={loading ? <ActivityIndicator style={styles.empty} color={resolvePresentationColor(theme.muted, 'color', 'content')} /> : null}
       onEndReached={() => { if (cursor && !error) void load(cursor); }} onEndReachedThreshold={0.5}
       refreshing={loading && !cursor} onRefresh={() => void load(null)} />
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({ screen: { flex: 1 }, nav: { height: 54, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }, back: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }, title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600' }, content: { padding: 18 }, row: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }, person: { flex: 1, flexDirection: 'row', gap: 12, alignItems: 'center' }, avatar: { width: 46, height: 46, borderRadius: 23 }, copy: { flex: 1, gap: 4 }, name: { fontSize: 15, fontWeight: '600' }, empty: { padding: 30, textAlign: 'center' } });
+const presentationBaselineStyles = styles;
